@@ -1,0 +1,132 @@
+# containerlab/topology.yml
+#
+# Enterprise Network Automation Lab Topology
+#
+# Topology overview:
+#   2x Cisco c8000v  — WAN routers, eBGP peering (AS65001 ↔ AS65002)
+#   2x Arista cEOS   — Distribution switches, OSPF with routers
+#   2x Linux hosts   — End hosts, one behind each Arista
+#
+# Enterprise features:
+#   NAT overload on both routers (inside=LAN, outside=eBGP link)
+#   ACL on arista-02 — policy toggle for Grafana/Prometheus testing
+#
+# Prerequisites:
+#   containerlab >= 0.48
+#   docker images pulled:
+#     vrnetlab/cisco_c8000v:17.15.04c
+#     ceos:4.35.1F
+#     nicolaka/netshoot:latest
+#
+# Usage:
+#   sudo containerlab deploy --topo topology.yml
+#   sudo containerlab destroy --topo topology.yml --cleanup
+
+name: enterprise-netauto-lab
+
+mgmt:
+  network: netauto-mgmt
+  ipv4-subnet: 172.20.20.0/24
+
+topology:
+
+  nodes:
+
+    # ── WAN Routers (Cisco c8000v IOS-XE) ─────────────────────────────────
+
+    rtr-01:
+      kind: cisco_c8000v
+      image: vrnetlab/cisco_c8000v:17.15.04c
+      mgmt-ipv4: 172.20.20.11
+      labels:
+        site: lab-dc01
+        role: core-router
+        vendor: cisco
+        platform: iosxe
+        managed: "true"
+
+    rtr-02:
+      kind: cisco_c8000v
+      image: vrnetlab/cisco_c8000v:17.15.04c
+      mgmt-ipv4: 172.20.20.12
+      labels:
+        site: lab-dc01
+        role: core-router
+        vendor: cisco
+        platform: iosxe
+        managed: "true"
+
+    # ── Distribution Switches (Arista cEOS) ────────────────────────────────
+
+    arista-01:
+      kind: ceos
+      image: ceos:4.35.1F
+      mgmt-ipv4: 172.20.20.13
+      startup-config: configs/arista-01-initial.cfg
+      env:
+        ETBA: 1
+        SKIP_ZEROTOUCH_BARRIER_IN_SYSDBINIT: 1
+        CEOS: 1
+        EOS_PLATFORM: ceoslab
+        container: docker
+        MAPETH0: 1
+        MGMT_INTF: eth0
+      labels:
+        site: lab-dc01
+        role: distribution-switch
+        vendor: arista
+        platform: eos
+        managed: "true"
+
+    arista-02:
+      kind: ceos
+      image: ceos:4.35.1F
+      mgmt-ipv4: 172.20.20.14
+      startup-config: configs/arista-02-initial.cfg
+      env:
+        ETBA: 1
+        SKIP_ZEROTOUCH_BARRIER_IN_SYSDBINIT: 1
+        CEOS: 1
+        EOS_PLATFORM: ceoslab
+        container: docker
+        MAPETH0: 1
+        MGMT_INTF: eth0
+      labels:
+        site: lab-dc01
+        role: distribution-switch
+        vendor: arista
+        platform: eos
+        managed: "true"
+
+    # ── End Hosts (Linux — nicolaka/netshoot) ──────────────────────────────
+
+    host-01:
+      kind: linux
+      image: nicolaka/netshoot:latest
+      mgmt-ipv4: 172.20.20.21
+      exec:
+        - ip addr add 192.168.1.10/24 dev eth1
+        - ip route add default via 192.168.1.1
+        - ip route add 192.168.2.0/24 via 192.168.1.1
+
+    host-02:
+      kind: linux
+      image: nicolaka/netshoot:latest
+      mgmt-ipv4: 172.20.20.22
+      exec:
+        - ip addr add 192.168.2.10/24 dev eth1
+        - ip route add default via 192.168.2.1
+        - ip route add 192.168.1.0/24 via 192.168.2.1
+
+  links:
+
+    # eBGP link — eth1 maps to GigabitEthernet2 inside IOS-XE
+    - endpoints: ["rtr-01:eth1", "rtr-02:eth1"]
+
+    # OSPF links — eth2 maps to GigabitEthernet3 inside IOS-XE
+    - endpoints: ["rtr-01:eth2", "arista-01:eth1"]
+    - endpoints: ["rtr-02:eth2", "arista-02:eth1"]
+
+    # LAN links — Arista to hosts
+    - endpoints: ["arista-01:eth2", "host-01:eth1"]
+    - endpoints: ["arista-02:eth2", "host-02:eth1"]
