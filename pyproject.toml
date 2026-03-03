@@ -1,0 +1,58 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.backends.legacy:build"
+
+[project]
+name = "enterprise-netauto-platform"
+version = "0.1.0"
+description = "Enterprise End-to-End Network Automation Platform"
+requires-python = ">=3.10"
+
+dependencies = [
+    "nornir>=3.4.0",
+    "nornir-scrapli>=2023.1.30",
+    "nornir-utils>=0.2.0",
+    "scrapli>=2024.1.30",
+    "scrapli-community>=2024.1.30",
+    "jinja2>=3.1.2",
+    "pynautobot>=2.1.0",
+    "requests>=2.31.0",
+    "pyats>=23.0",
+    "genie>=23.0",
+    "prometheus-client>=0.19.0",
+    "ollama>=0.1.7",
+    "langchain>=0.1.0",
+    "langchain-community>=0.0.10",
+    "pydantic>=2.5.0",
+    "pydantic-settings>=2.1.0",
+    "python-dotenv>=1.0.0",
+    "deepdiff>=6.7.0",
+    "rich>=13.7.0",
+    "tenacity>=8.2.3",
+    "structlog>=23.3.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4.0",
+    "pytest-asyncio>=0.23.0",
+    "pytest-mock>=3.12.0",
+    "ruff>=0.1.9",
+    "mypy>=1.8.0",
+    "pre-commit>=3.6.0",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.mypy]
+python_version = "3.10"
+strict = true
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+log_cli = true
+log_cli_level = "INFO"
