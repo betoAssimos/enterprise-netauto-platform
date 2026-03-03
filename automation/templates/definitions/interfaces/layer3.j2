@@ -1,0 +1,38 @@
+{#
+  automation/templates/definitions/interfaces/layer3.j2
+
+  Renders Layer 3 interface configuration for Cisco IOS-XE (c8000v).
+
+  Required context variables:
+    interfaces (list) : List of interface dicts, each containing:
+        name          (str)  : Interface name, e.g. GigabitEthernet1
+        ip_address    (str)  : IP address with prefix, e.g. 10.0.0.1/30
+        description   (str)  : Interface description
+
+  Optional per-interface variables:
+        shutdown      (bool) : Whether interface is admin-down (default false)
+        mtu           (int)  : MTU override, e.g. 9000
+        ospf_area     (str)  : OSPF area if interface participates in OSPF
+        ospf_network  (str)  : OSPF network type, e.g. point-to-point
+#}
+{% for iface in interfaces %}
+!
+! -- {{ iface.description | default(iface.name) }}
+interface {{ iface.name }}
+ description {{ iface.description | default("no-description") }}
+ ip address {{ iface.ip_address | replace("/", " ") | ipaddr_to_netmask }}
+{% if iface.mtu is defined %}
+ ip mtu {{ iface.mtu }}
+{% endif %}
+{% if iface.ospf_area is defined %}
+ ip ospf {{ iface.ospf_process | default("1") }} area {{ iface.ospf_area }}
+{% endif %}
+{% if iface.ospf_network is defined %}
+ ip ospf network {{ iface.ospf_network }}
+{% endif %}
+{% if iface.shutdown | default(false) %}
+ shutdown
+{% else %}
+ no shutdown
+{% endif %}
+{% endfor %}

@@ -1,0 +1,51 @@
+{#
+  automation/templates/definitions/bgp/neighbors.j2
+
+  Renders BGP neighbor stanzas for Cisco IOS-XE (c8000v).
+
+  Required context variables:
+    bgp_asn       (int)  : Local AS number
+    neighbors     (list) : List of neighbor dicts, each containing:
+        ip            (str)  : Neighbor IP address
+        remote_as     (int)  : Remote AS number
+        description   (str)  : Human-readable label
+
+  Optional per-neighbor variables:
+        update_source (str)  : Source interface, e.g. Loopback0
+        route_map_in  (str)  : Inbound route-map name
+        route_map_out (str)  : Outbound route-map name
+        password      (str)  : MD5 authentication password
+        shutdown      (bool) : Whether neighbor is admin-down
+
+  Optional top-level variables:
+    bgp_router_id          (str)  : Explicit router-id
+    bgp_log_neighbor_changes (bool, default true)
+#}
+router bgp {{ bgp_asn }}
+{% if bgp_router_id is defined %}
+ bgp router-id {{ bgp_router_id }}
+{% endif %}
+{% if bgp_log_neighbor_changes | default(true) %}
+ bgp log-neighbor-changes
+{% endif %}
+{% for neighbor in neighbors %}
+ !
+ ! -- {{ neighbor.description | default(neighbor.ip) }}
+ neighbor {{ neighbor.ip }} remote-as {{ neighbor.remote_as }}
+ neighbor {{ neighbor.ip }} description {{ neighbor.description | default("no-description") }}
+{% if neighbor.update_source is defined %}
+ neighbor {{ neighbor.ip }} update-source {{ neighbor.update_source }}
+{% endif %}
+{% if neighbor.password is defined %}
+ neighbor {{ neighbor.ip }} password {{ neighbor.password }}
+{% endif %}
+{% if neighbor.route_map_in is defined %}
+ neighbor {{ neighbor.ip }} route-map {{ neighbor.route_map_in }} in
+{% endif %}
+{% if neighbor.route_map_out is defined %}
+ neighbor {{ neighbor.ip }} route-map {{ neighbor.route_map_out }} out
+{% endif %}
+{% if neighbor.shutdown | default(false) %}
+ neighbor {{ neighbor.ip }} shutdown
+{% endif %}
+{% endfor %}
