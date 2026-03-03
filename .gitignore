@@ -1,0 +1,24 @@
+# Python
+venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+
+# Secrets — never commit these
+.env
+*.key
+*.pem
+
+# Runtime artifacts
+*.log
+/tmp/
+rollback_archive/
+
+# IDE
+.idea/
+.vscode/
