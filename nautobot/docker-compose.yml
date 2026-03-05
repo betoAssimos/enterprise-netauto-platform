@@ -1,0 +1,57 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:13
+    environment:
+      POSTGRES_USER: nautobot
+      POSTGRES_PASSWORD: nautobot
+      POSTGRES_DB: nautobot
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - netauto-mgmt
+
+  redis:
+    image: redis:6-alpine
+    command: redis-server --appendonly yes
+    networks:
+      - netauto-mgmt
+
+  nautobot:
+    image: networktocode/nautobot:latest
+    user: root
+    depends_on:
+      - postgres
+      - redis
+    environment:
+      - NAUTOBOT_ALLOWED_HOSTS=*
+      - NAUTOBOT_DB_HOST=postgres
+      - NAUTOBOT_DB_NAME=nautobot
+      - NAUTOBOT_DB_USER=nautobot
+      - NAUTOBOT_DB_PASSWORD=nautobot
+      - NAUTOBOT_REDIS_HOST=redis
+      - NAUTOBOT_REDIS_PORT=6379
+      - NAUTOBOT_REDIS_PASSWORD=
+      - NAUTOBOT_SUPERUSER_NAME=admin
+      - NAUTOBOT_SUPERUSER_EMAIL=admin@example.com
+      - NAUTOBOT_SUPERUSER_PASSWORD=admin
+    ports:
+      - "8080:8080"
+    volumes:
+      - nautobot_config:/opt/nautobot/nautobot_config
+      - nautobot_media:/opt/nautobot/media
+      - nautobot_repo:/opt/nautobot/git
+    networks:
+      - netauto-mgmt
+
+volumes:
+  postgres_data:
+  nautobot_config:
+  nautobot_media:
+  nautobot_repo:
+
+networks:
+  netauto-mgmt:
+    external: true
+    name: netauto-mgmt
