@@ -1,0 +1,12 @@
+]633;E;echo "=== host-01 ===";d2ed95fc-e07d-4a19-b047-55ec178adce4]633;C=== host-01 ===
+456: eth1@if455: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 9500 qdisc noqueue state UP group default 
+    link/ether aa:c1:ab:c0:8e:90 brd ff:ff:ff:ff:ff:ff link-netnsid 1
+    inet 192.168.1.10/24 scope global eth1
+       valid_lft forever preferred_lft forever
+    inet6 fe80::a8c1:abff:fec0:8e90/64 scope link proto kernel_ll 
+       valid_lft forever preferred_lft forever
+default via 172.20.20.1 dev eth0 
+10.1.1.0/30 via 192.168.1.1 dev eth1 
+172.20.20.0/24 dev eth0 proto kernel scope link src 172.20.20.21 
+192.168.1.0/24 dev eth1 proto kernel scope link src 192.168.1.10 
+192.168.2.0/24 via 192.168.1.1 dev eth1 

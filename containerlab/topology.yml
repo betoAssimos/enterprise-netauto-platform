@@ -108,6 +108,7 @@ topology:
         - ip addr add 192.168.1.10/24 dev eth1
         - ip route add default via 192.168.1.1
         - ip route add 192.168.2.0/24 via 192.168.1.1
+        - ip route add 10.1.1.0/30 via 192.168.1.1 dev eth1
 
     host-02:
       kind: linux
@@ -117,6 +118,7 @@ topology:
         - ip addr add 192.168.2.10/24 dev eth1
         - ip route add default via 192.168.2.1
         - ip route add 192.168.1.0/24 via 192.168.2.1
+        - ip route add 10.2.2.0/30 via 192.168.2.1 dev eth1
 
   links:
 
