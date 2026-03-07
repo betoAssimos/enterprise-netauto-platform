@@ -110,6 +110,10 @@ def detect_drift(
     # ── Desired state ─────────────────────────────────────────────────────
     try:
         context = context_builder(task)
+        # Skip devices without BGP context
+        if not context:
+            log.debug("Skipping drift detection (no BGP context)", device=device)
+            return Result(host=task.host, skipped=True)
         desired_config = renderer.render(template_path, context)
         desired_state = _config_to_structured(desired_config)
         log.debug(

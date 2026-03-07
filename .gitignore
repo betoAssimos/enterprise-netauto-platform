@@ -1,5 +1,6 @@
 # Python
 venv/
+.venv/
 __pycache__/
 *.py[cod]
 *.egg-info/
@@ -22,18 +23,10 @@ rollback_archive/
 # IDE
 .idea/
 .vscode/
-.env
 
 # Containerlab runtime artifacts
 containerlab/clab-*/
-
-# Arista EOS internal git repos
 containerlab/**/.config-repo-ar/
 
 # Netbox docker stack
 netbox-docker/
-
-# Python artifacts
-__pycache__/
-*.pyc
-.venv/

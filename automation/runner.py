@@ -8,6 +8,7 @@ def main():
         print("  python automation/runner.py connect test")
         print("  python automation/runner.py deploy interfaces")
         print("  python automation/runner.py deploy bgp")
+        print("  python automation/runner.py drift bgp")
         sys.exit(1)
 
     module = sys.argv[1]
@@ -30,6 +31,13 @@ def main():
         from automation.workflows.bgp_workflow import run_bgp_deploy
 
         result = run_bgp_deploy(nr)
+        print(result)
+    
+    elif module == "drift" and action == "bgp":
+        from automation.test_connection import nr
+        from automation.workflows.bgp_workflow import run_bgp_drift_check
+
+        result = run_bgp_drift_check(nr)
         print(result)
 
     else:
