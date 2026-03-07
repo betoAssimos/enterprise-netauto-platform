@@ -1,6 +1,6 @@
 [build-system]
 requires = ["setuptools>=68", "wheel"]
-build-backend = "setuptools.backends.legacy:build"
+build-backend = "setuptools.build_meta"
 
 [project]
 name = "enterprise-netauto-platform"
@@ -56,3 +56,8 @@ testpaths = ["tests"]
 asyncio_mode = "auto"
 log_cli = true
 log_cli_level = "INFO"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["automation*", "ai*"]   # only include packages starting with automation and ai
+exclude = ["nautobot*", "containerlab*", "telemetry*"]

@@ -23,3 +23,17 @@ rollback_archive/
 .idea/
 .vscode/
 .env
+
+# Containerlab runtime artifacts
+containerlab/clab-*/
+
+# Arista EOS internal git repos
+containerlab/**/.config-repo-ar/
+
+# Netbox docker stack
+netbox-docker/
+
+# Python artifacts
+__pycache__/
+*.pyc
+.venv/

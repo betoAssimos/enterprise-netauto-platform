@@ -22,6 +22,7 @@ Design principles:
 
 from __future__ import annotations
 
+from multiprocessing import context
 import time
 from typing import Any, Callable
 
@@ -87,6 +88,11 @@ def deploy_config(
     log.debug("Building context", device=device)
     try:
         context = context_builder(task)
+        # Skip devices without BGP context
+        if not context:
+            log.debug("Skipping device without BGP context", device=device)
+            return Result(host=task.host, skipped=True)
+
         steps["context"] = "ok"
     except Exception as exc:
         log.error("Context build failed", device=device, error=str(exc))

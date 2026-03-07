@@ -1,0 +1,66 @@
+# gnmic configuration for enterprise-netauto-platform
+# Arista cEOS switches only - Cisco XE gNMI not available in this lab
+# Arista gNMI port: 6030
+
+username: admin
+password: admin
+insecure: true
+log: true
+
+targets:
+  172.20.20.13:6030:
+    name: arista-01
+    username: admin
+    password: admin
+    insecure: true
+  172.20.20.14:6030:
+    name: arista-02
+    username: admin
+    password: admin
+    insecure: true
+
+subscriptions:
+  interfaces:
+    paths:
+      - /interfaces/interface/state/counters
+      - /interfaces/interface/state/oper-status
+    mode: stream
+    stream-mode: sample
+    sample-interval: 10s
+    encoding: json_ietf
+
+  bgp:
+    paths:
+      - /network-instances/network-instance[name=default]/protocols/protocol[name=BGP]/bgp/neighbors/neighbor/state
+    mode: stream
+    stream-mode: sample
+    sample-interval: 30s
+    encoding: json_ietf
+
+  system:
+    paths:
+      - /system/state/hostname
+      - /system/state/boot-time
+    mode: stream
+    stream-mode: sample
+    sample-interval: 60s
+    encoding: json_ietf
+
+outputs:
+  prometheus_output:
+    type: prometheus
+    listen: :9804
+    path: /metrics
+    metric-prefix: gnmic
+    export-timestamps: true
+    debug: false
+
+target-subscriptions:
+  172.20.20.13:6030:
+    - interfaces
+    - bgp
+    - system
+  172.20.20.14:6030:
+    - interfaces
+    - bgp
+    - system

@@ -1,0 +1,17 @@
+cisco:
+  platform: cisco_iosxe
+  username: admin
+  password: admin
+  connection_options:
+    scrapli:
+      extras:
+        auth_strict_key: false
+
+arista:
+  platform: arista_eos
+  username: admin
+  password: admin
+  connection_options:
+    scrapli:
+      extras:
+        auth_strict_key: false

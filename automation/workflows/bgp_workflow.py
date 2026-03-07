@@ -29,7 +29,8 @@ from nornir.core.task import Result, Task
 from automation.drift.detector import detect_drift, summarize_drift
 from automation.tasks.deploy_config import deploy_config
 from automation.utils.logger import get_logger
-from automation.validators.checks import post_check, pre_check, rollback_config
+from automation.validators.checks import post_check, pre_check
+from automation.rollback.rollback import rollback_config
 
 log = get_logger(__name__)
 
@@ -60,7 +61,8 @@ def bgp_context_builder(task: Task) -> dict[str, Any]:
 
     bgp_asn = custom_fields.get("bgp_asn")
     if bgp_asn is None:
-        raise ValueError(f"Device {device} is missing required custom field: bgp_asn")
+        log.debug("Skipping device without BGP ASN", device=device)
+        return {}
 
     bgp_neighbors = custom_fields.get("bgp_neighbors", [])
     if not isinstance(bgp_neighbors, list):
