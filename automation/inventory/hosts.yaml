@@ -1,35 +1,52 @@
-rtr-01:
-  hostname: 172.20.20.11
+arista-01:
+  data:
+    custom_fields: {}
+    manufacturer: Arista
+    model: cEOS
+    role: core-switch
+    site: lab
   groups:
-    - cisco
+  - eos
+  hostname: 172.20.20.13
+arista-02:
+  data:
+    custom_fields: {}
+    manufacturer: Arista
+    model: cEOS
+    role: core-switch
+    site: lab
+  groups:
+  - eos
+  hostname: 172.20.20.14
+rtr-01:
   data:
     custom_fields:
       bgp_asn: 65001
       bgp_neighbors:
-        - ip: 172.20.20.12
-          remote_as: 65002
-          description: rtr02
-
-rtr-02:
-  hostname: 172.20.20.12
+      - description: rtr02
+        ip: 10.0.0.2
+        remote_as: 65002
+      bgp_router_id: 1.1.1.1
+    manufacturer: Cisco
+    model: IOSv
+    role: edge-router
+    site: lab
   groups:
-    - cisco
+  - ios
+  hostname: 172.20.20.11
+rtr-02:
   data:
     custom_fields:
       bgp_asn: 65002
       bgp_neighbors:
-        - ip: 172.20.20.11
-          remote_as: 65001
-          description: rtr01
-
-arista-01:
-  hostname: 172.20.20.13
+      - description: rtr01
+        ip: 10.0.0.1
+        remote_as: 65001
+      bgp_router_id: 2.2.2.2
+    manufacturer: Cisco
+    model: IOSv
+    role: edge-router
+    site: lab
   groups:
-    - arista
-  data: {}
-
-arista-02:
-  hostname: 172.20.20.14
-  groups:
-    - arista
-  data: {}
+  - ios
+  hostname: 172.20.20.12
