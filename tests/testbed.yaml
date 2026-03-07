@@ -1,0 +1,61 @@
+# tests/testbed.yaml
+#
+# pyATS testbed for enterprise-netauto-platform lab.
+#
+# Credentials are read from environment variables — never hardcode secrets.
+# Set DEVICE_USERNAME and DEVICE_PASSWORD in your .env file (not committed).
+#
+# Device IPs match the Containerlab management network (172.20.20.0/24).
+
+testbed:
+  name: enterprise-netauto-lab
+
+devices:
+
+  rtr-01:
+    os: iosxe
+    type: router
+    credentials:
+      default:
+        username: "%ENV{DEVICE_USERNAME}"
+        password: "%ENV{DEVICE_PASSWORD}"
+    connections:
+      cli:
+        protocol: ssh
+        ip: 172.20.20.11
+
+  rtr-02:
+    os: iosxe
+    type: router
+    credentials:
+      default:
+        username: "%ENV{DEVICE_USERNAME}"
+        password: "%ENV{DEVICE_PASSWORD}"
+    connections:
+      cli:
+        protocol: ssh
+        ip: 172.20.20.12
+
+  arista-01:
+    os: eos
+    type: switch
+    credentials:
+      default:
+        username: "%ENV{DEVICE_USERNAME}"
+        password: "%ENV{DEVICE_PASSWORD}"
+    connections:
+      cli:
+        protocol: ssh
+        ip: 172.20.20.13
+
+  arista-02:
+    os: eos
+    type: switch
+    credentials:
+      default:
+        username: "%ENV{DEVICE_USERNAME}"
+        password: "%ENV{DEVICE_PASSWORD}"
+    connections:
+      cli:
+        protocol: ssh
+        ip: 172.20.20.14
