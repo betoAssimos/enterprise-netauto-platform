@@ -30,3 +30,7 @@ containerlab/**/.config-repo-ar/
 
 # Netbox docker stack
 netbox-docker/
+
+# Session artifacts
+handover-*.md
+nornir.log
