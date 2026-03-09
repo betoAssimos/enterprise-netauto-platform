@@ -27,7 +27,7 @@ from dotenv import load_dotenv
 
 from automation.utils.logger import get_logger
 
-load_dotenv()
+load_dotenv(override=True)
 log = get_logger(__name__)
 
 NETBOX_URL = os.getenv("NETBOX_URL")
@@ -51,9 +51,9 @@ nb = pynetbox.api(NETBOX_URL, token=NETBOX_TOKEN)
 def get_platform(manufacturer: str) -> str:
     manufacturer = manufacturer.lower()
     if "cisco" in manufacturer:
-        return "ios"
+        return "cisco"
     if "arista" in manufacturer:
-        return "eos"
+        return "arista"
     return "linux"
 
 

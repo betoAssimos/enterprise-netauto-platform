@@ -27,7 +27,7 @@ from dotenv import load_dotenv
 
 from automation.utils.logger import get_logger
 
-load_dotenv()
+load_dotenv(override=True)
 log = get_logger(__name__)
 
 NETBOX_URL = os.getenv("NETBOX_URL")

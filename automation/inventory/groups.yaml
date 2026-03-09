@@ -1,17 +1,22 @@
 cisco:
-  platform: cisco_iosxe
+  platform: cisco_ios
   username: admin
   password: admin
   connection_options:
     scrapli:
+      platform: cisco_iosxe
+      port: 22
       extras:
         auth_strict_key: false
-
+        ssh_config_file: false
 arista:
   platform: arista_eos
   username: admin
   password: admin
   connection_options:
     scrapli:
+      platform: arista_eos
+      port: 22
       extras:
         auth_strict_key: false
+        ssh_config_file: false

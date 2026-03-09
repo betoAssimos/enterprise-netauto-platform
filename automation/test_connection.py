@@ -17,3 +17,6 @@ def test_connection(task):
     )
     print(f"\nDevice: {task.host}")
     print(result.result[:200])
+if __name__ == "__main__":
+    results = nr.run(task=test_connection)
+    print(f"\nCompleted: {len(results)} devices")

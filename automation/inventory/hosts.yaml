@@ -6,7 +6,7 @@ arista-01:
     role: core-switch
     site: lab
   groups:
-  - eos
+  - arista
   hostname: 172.20.20.13
 arista-02:
   data:
@@ -16,7 +16,7 @@ arista-02:
     role: core-switch
     site: lab
   groups:
-  - eos
+  - arista
   hostname: 172.20.20.14
 rtr-01:
   data:
@@ -32,7 +32,7 @@ rtr-01:
     role: edge-router
     site: lab
   groups:
-  - ios
+  - cisco
   hostname: 172.20.20.11
 rtr-02:
   data:
@@ -48,5 +48,5 @@ rtr-02:
     role: edge-router
     site: lab
   groups:
-  - ios
+  - cisco
   hostname: 172.20.20.12

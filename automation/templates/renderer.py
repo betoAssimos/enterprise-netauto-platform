@@ -10,10 +10,15 @@ Design principles:
 - Rendered output validated for minimum content before returning
 - Dry-run aware: logs rendered config without sending to device
 - No business logic in templates; all logic lives here or in workflows
+
+Custom filters registered:
+- ipaddr_to_netmask : converts CIDR prefix to IOS address+mask pair
+                      e.g. "10.0.0.1/30" → "10.0.0.1 255.255.255.252"
 """
 
 from __future__ import annotations
 
+import ipaddress
 from pathlib import Path
 from typing import Any
 
@@ -32,6 +37,41 @@ log = get_logger(__name__)
 # Default template directory
 _DEFAULT_TEMPLATE_DIR = Path(__file__).parent / "definitions"
 
+
+# ---------------------------------------------------------------------------
+# Custom Jinja2 filters
+# ---------------------------------------------------------------------------
+
+def _ipaddr_to_netmask(cidr: str) -> str:
+    """
+    Convert a CIDR address string to IOS-style 'address mask' format.
+
+    Used in layer3.j2 to convert interface IP/prefix to IOS syntax.
+
+    Examples
+    --------
+    >>> _ipaddr_to_netmask("10.0.0.1/30")
+    '10.0.0.1 255.255.255.252'
+    >>> _ipaddr_to_netmask("1.1.1.1/32")
+    '1.1.1.1 255.255.255.255'
+
+    Raises
+    ------
+    ValueError
+        If the input is not a valid CIDR notation string.
+    """
+    try:
+        interface = ipaddress.IPv4Interface(cidr)
+        return f"{interface.ip} {interface.netmask}"
+    except ValueError as exc:
+        raise ValueError(
+            f"ipaddr_to_netmask: invalid CIDR input '{cidr}': {exc}"
+        ) from exc
+
+
+# ---------------------------------------------------------------------------
+# Renderer
+# ---------------------------------------------------------------------------
 
 class TemplateRenderer:
     """
@@ -56,7 +96,7 @@ class TemplateRenderer:
         self._env = self._build_env()
 
     def _build_env(self) -> Environment:
-        return Environment(
+        env = Environment(
             loader=FileSystemLoader(str(self._template_dir)),
             undefined=StrictUndefined,
             trim_blocks=True,
@@ -64,6 +104,9 @@ class TemplateRenderer:
             keep_trailing_newline=True,
             autoescape=False,  # Network configs are not HTML
         )
+        # Register custom filters
+        env.filters["ipaddr_to_netmask"] = _ipaddr_to_netmask
+        return env
 
     def render(self, template_path: str, context: dict[str, Any]) -> str:
         """

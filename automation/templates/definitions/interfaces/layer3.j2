@@ -20,7 +20,7 @@
 ! -- {{ iface.description | default(iface.name) }}
 interface {{ iface.name }}
  description {{ iface.description | default("no-description") }}
- ip address {{ iface.ip_address | replace("/", " ") | ipaddr_to_netmask }}
+ ip address {{ iface.ip_address | ipaddr_to_netmask }}
 {% if iface.mtu is defined %}
  ip mtu {{ iface.mtu }}
 {% endif %}
