@@ -1,0 +1,190 @@
+# ============================================================================
+# .gitlab-ci.yml — Enterprise Network Automation Platform
+# ============================================================================
+#
+# Pipeline stages implement the full network change lifecycle:
+#
+#   build          → validate environment, install deps, generate inventory
+#   prevalidation  → pyATS baseline capture (what the network looks like NOW)
+#   deploy         → push interface + BGP config via Nornir/Scrapli
+#   postvalidation → pyATS regression check (did anything break?)
+#
+# Runner: wsl-lab-runner (shell executor, tags: wsl, lab)
+# The runner has direct L3 access to the Containerlab network (172.20.20.0/24)
+# and the project venv is pre-installed at $PROJECT_DIR/venv.
+#
+# Secrets injected via GitLab CI/CD variables (Settings → CI/CD → Variables):
+#   NETBOX_URL       http://localhost:8000
+#   NETBOX_TOKEN     nbt_<key>.<secret>
+#   DEVICE_USERNAME  admin
+#   DEVICE_PASSWORD  admin
+#
+# 350-901 objectives demonstrated:
+#   1.x  Python automation  — Nornir, Scrapli, Jinja2 template rendering
+#   2.x  IaC / CI/CD        — GitLab pipeline, SoT-driven inventory, secrets mgmt
+#   3.x  Operations         — pyATS pre/post validation, regression detection
+# ============================================================================
+
+variables:
+  PROJECT_DIR: "/home/beto/enterprise-netauto-platform"
+  VENV_PYTHON: "/home/beto/enterprise-netauto-platform/venv/bin/python"
+  VENV_PYATS:  "/home/beto/enterprise-netauto-platform/venv/bin/pyats"
+
+# ── Default settings applied to all jobs ────────────────────────────────────
+default:
+  tags:
+    - wsl
+    - lab
+  before_script:
+    # Activate venv and reload .env so all jobs share the same environment
+    - cd $PROJECT_DIR
+    - source venv/bin/activate
+    - set -a && source .env && set +a
+
+# ── Stage definitions ────────────────────────────────────────────────────────
+stages:
+  - build
+  - prevalidation
+  - deploy
+  - postvalidation
+
+# ============================================================================
+# STAGE 1 — BUILD
+# Validate environment health and regenerate the Nornir inventory from NetBox.
+# Failing here aborts the pipeline before touching any device.
+# ============================================================================
+
+build:validate-environment:
+  stage: build
+  script:
+    - echo "==> Validating Python environment"
+    - $VENV_PYTHON --version
+    - $VENV_PYTHON -c "import nornir, pynetbox, scrapli, pyats; print('All core deps present')"
+
+    - echo "==> Validating NetBox API connectivity"
+    - |
+      $VENV_PYTHON - <<'EOF'
+      import requests, os
+      token = os.getenv('NETBOX_TOKEN')
+      url   = os.getenv('NETBOX_URL')
+      r = requests.get(f'{url}/api/status/', headers={'Authorization': f'Bearer {token}'})
+      assert r.status_code == 200, f"NetBox API returned {r.status_code}: {r.text}"
+      print(f"NetBox {r.json()['netbox-version']} — API OK")
+      EOF
+
+    - echo "==> Validating Containerlab devices reachable"
+    - ping -c1 -W2 172.20.20.11 > /dev/null && echo "rtr-01 reachable"
+    - ping -c1 -W2 172.20.20.12 > /dev/null && echo "rtr-02 reachable"
+    - ping -c1 -W2 172.20.20.13 > /dev/null && echo "arista-01 reachable"
+    - ping -c1 -W2 172.20.20.14 > /dev/null && echo "arista-02 reachable"
+
+build:generate-inventory:
+  stage: build
+  needs: [build:validate-environment]
+  script:
+    - echo "==> Regenerating Nornir inventory from NetBox"
+    - $VENV_PYTHON automation/inventory/netbox_inventory.py
+
+    - echo "==> Verifying inventory content"
+    - |
+      $VENV_PYTHON - <<'EOF'
+      import yaml
+      with open('automation/inventory/hosts.yaml') as f:
+          hosts = yaml.safe_load(f)
+      assert 'rtr-01' in hosts, "rtr-01 missing from inventory"
+      assert 'rtr-02' in hosts, "rtr-02 missing from inventory"
+      print(f"Inventory OK — {len(hosts)} devices: {list(hosts.keys())}")
+      EOF
+
+  artifacts:
+    paths:
+      - automation/inventory/hosts.yaml
+    expire_in: 1 hour
+
+# ============================================================================
+# STAGE 2 — PREVALIDATION
+# Capture the current network state before making any changes.
+# This is the "before" snapshot for regression comparison in postvalidation.
+# A failure here means the network is already broken — pipeline aborts safely.
+# ============================================================================
+
+prevalidation:bgp-baseline:
+  stage: prevalidation
+  needs: [build:generate-inventory]
+  script:
+    - echo "==> Running pyATS BGP pre-check"
+    - |
+      $VENV_PYATS run job tests/precheck/test_bgp.py \
+        --testbed tests/testbed.yaml \
+        --html-logs precheck-report.html \
+        2>&1 | tee precheck.log
+    - |
+      # Allow precheck to fail if BGP not yet configured (first deploy scenario)
+      # but capture the result for comparison
+      grep -E "Result\s*:\s*(PASSED|FAILED|ERRORED)" precheck.log \
+        && echo "Pre-check complete — result captured"
+  artifacts:
+    paths:
+      - precheck.log
+      - precheck-report.html
+    expire_in: 7 days
+    when: always
+  allow_failure: true  # First-time deploy has no BGP baseline — not a blocker
+
+# ============================================================================
+# STAGE 3 — DEPLOY
+# Push interface addressing, SNMP, and BGP configuration to all devices.
+# Both workflows are idempotent — re-running produces no unintended changes.
+# ============================================================================
+
+deploy:interfaces:
+  stage: deploy
+  needs: [prevalidation:bgp-baseline]
+  script:
+    - echo "==> Deploying Layer 3 interfaces and SNMP"
+    - $VENV_PYTHON automation/workflows/deploy_interfaces_workflow.py
+  artifacts:
+    paths:
+      - deploy-interfaces.log
+    expire_in: 1 hour
+    when: always
+
+deploy:bgp:
+  stage: deploy
+  needs: [deploy:interfaces]
+  script:
+    - echo "==> Deploying BGP configuration"
+    - $VENV_PYTHON automation/runner.py deploy bgp
+  artifacts:
+    paths:
+      - deploy-bgp.log
+    expire_in: 1 hour
+    when: always
+
+# ============================================================================
+# STAGE 4 — POSTVALIDATION
+# Validate the network state after deployment.
+# This is the "after" snapshot — any regression against prevalidation fails
+# the pipeline and signals the operator to investigate.
+# ============================================================================
+
+postvalidation:bgp-verify:
+  stage: postvalidation
+  needs: [deploy:bgp]
+  script:
+    - echo "==> Running pyATS BGP post-check"
+    - |
+      $VENV_PYATS run job tests/postcheck/test_bgp.py \
+        --testbed tests/testbed.yaml \
+        --html-logs postcheck-report.html \
+        2>&1 | tee postcheck.log
+    - |
+      # Hard fail if post-check does not pass
+      grep -E "Result\s*:\s*PASSED" postcheck.log \
+        || (echo "POST-CHECK FAILED — BGP regression detected" && exit 1)
+  artifacts:
+    paths:
+      - postcheck.log
+      - postcheck-report.html
+    expire_in: 30 days
+    when: always
