@@ -26,7 +26,6 @@
 # ============================================================================
 
 variables:
-  PROJECT_DIR: "/home/beto/enterprise-netauto-platform"
   VENV_PYTHON: "/home/beto/enterprise-netauto-platform/venv/bin/python"
   VENV_PYATS:  "/home/beto/enterprise-netauto-platform/venv/bin/pyats"
 
@@ -36,9 +35,8 @@ default:
     - wsl
     - lab
   before_script:
-    - cd $PROJECT_DIR
-    - source venv/bin/activate
-    - set -a && source .env && set +a
+    - source $VENV_PYTHON/../activate
+    - set -a && source /home/beto/enterprise-netauto-platform/.env && set +a
 
 # -- Stage definitions -------------------------------------------------------
 stages:
