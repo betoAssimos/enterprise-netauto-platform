@@ -35,7 +35,7 @@ default:
     - wsl
     - lab
   before_script:
-    - source $VENV_PYTHON/../activate
+    - source /home/beto/enterprise-netauto-platform/venv/bin/activate
     - set -a && source /home/beto/enterprise-netauto-platform/.env && set +a
 
 # -- Stage definitions -------------------------------------------------------
