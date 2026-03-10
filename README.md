@@ -120,6 +120,8 @@ rtr-01 (AS65001, IOS XE) ──eBGP── rtr-02 (AS65002, IOS XE)
         │                                   │
      host-01                            host-02
 ```
+<img width="877" height="1418" alt="image" src="https://github.com/user-attachments/assets/685522a9-9349-4b0a-aa20-6aef03ef1702" />
+
 
 eBGP between AS65001 and AS65002 over Loopback0. Both routers redistributing connected
 routes. Verified: rtr-01 receiving 3 prefixes from rtr-02. Redistribution deployed via
