@@ -68,6 +68,22 @@ CUSTOM_FIELDS = [
         "required": False,
         "description": "List of BGP neighbor dicts: [{ip, remote_as, description}]",
     },
+    {
+        "name": "bgp_redistribute_ospf",
+        "label": "BGP Redistribute OSPF",
+        "type": "boolean",
+        "object_types": ["dcim.device"],
+        "required": False,
+        "description": "Redistribute OSPF routes into BGP",
+    },
+    {
+        "name": "bgp_redistribute_connected",
+        "label": "BGP Redistribute Connected",
+        "type": "boolean",
+        "object_types": ["dcim.device"],
+        "required": False,
+        "description": "Redistribute connected routes into BGP",
+    },
 ]
 
 # ---------------------------------------------------------------------------
@@ -79,16 +95,31 @@ BGP_DATA = {
         "bgp_asn": 65001,
         "bgp_router_id": "1.1.1.1",
         "bgp_neighbors": [
-            {"ip": "10.0.0.2", "remote_as": 65002, "description": "rtr02"},
+            {
+                "ip": "10.0.0.2",
+                "remote_as": 65002,
+                "description": "rtr02",
+                "update_source": "Loopback0",
+            },
         ],
+        "bgp_redistribute_ospf": True,
+        "bgp_redistribute_connected": True,
     },
     "rtr-02": {
         "bgp_asn": 65002,
         "bgp_router_id": "2.2.2.2",
         "bgp_neighbors": [
-            {"ip": "10.0.0.1", "remote_as": 65001, "description": "rtr01"},
+            {
+                "ip": "10.0.0.1",
+                "remote_as": 65001,
+                "description": "rtr01",
+                "update_source": "Loopback0",
+            },
         ],
+        "bgp_redistribute_ospf": True,
+        "bgp_redistribute_connected": True,
     },
+    
 }
 
 
@@ -110,9 +141,8 @@ def populate_bgp_data() -> None:
         if not device:
             log.warning("Device not found in NetBox, skipping", device=device_name)
             continue
-        device.custom_fields["bgp_asn"] = bgp_cfg["bgp_asn"]
-        device.custom_fields["bgp_router_id"] = bgp_cfg["bgp_router_id"]
-        device.custom_fields["bgp_neighbors"] = bgp_cfg["bgp_neighbors"]
+        for field_name, field_value in bgp_cfg.items():
+            device.custom_fields[field_name] = field_value
         device.save()
         log.info(
             "Device BGP data updated",
@@ -120,6 +150,8 @@ def populate_bgp_data() -> None:
             asn=bgp_cfg["bgp_asn"],
             router_id=bgp_cfg["bgp_router_id"],
             neighbor_count=len(bgp_cfg["bgp_neighbors"]),
+            redistribute_ospf=bgp_cfg.get("bgp_redistribute_ospf"),
+            redistribute_connected=bgp_cfg.get("bgp_redistribute_connected"),
         )
 
 

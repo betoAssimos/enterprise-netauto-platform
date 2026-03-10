@@ -1,0 +1,42 @@
+name: BGP CI
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:  # Allow manual trigger
+
+jobs:
+  bgp-test:
+    # Use a self-hosted runner that can reach the Containerlab lab (172.20.20.0/24)
+    # If none is available, the workflow will fail. In that case, trigger manually.
+    runs-on: [self-hosted, linux, x64]
+    environment: lab  # optional, for secret scoping
+
+    env:
+      NETBOX_URL: ${{ secrets.NETBOX_URL }}
+      NETBOX_TOKEN: ${{ secrets.NETBOX_TOKEN }}
+      DEVICE_USERNAME: ${{ secrets.DEVICE_USERNAME }}
+      DEVICE_PASSWORD: ${{ secrets.DEVICE_PASSWORD }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Pre‑check – BGP baseline
+        run: pyats run job tests/precheck/test_bgp.py --testbed tests/testbed.yaml
+
+      - name: Deploy BGP configuration
+        run: python automation/runner.py deploy bgp
+
+      - name: Post‑check – BGP validation
+        run: pyats run job tests/postcheck/test_bgp.py --testbed tests/testbed.yaml

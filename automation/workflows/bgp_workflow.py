@@ -79,6 +79,8 @@ def bgp_context_builder(task: Task) -> dict[str, Any]:
     bgp_router_id = custom_fields.get("bgp_router_id")
     if bgp_router_id:
         context["bgp_router_id"] = bgp_router_id
+    context["redistribute_ospf"] = bool(custom_fields.get("bgp_redistribute_ospf", False))
+    context["redistribute_connected"] = bool(custom_fields.get("bgp_redistribute_connected", False))
 
     log.debug(
         "BGP context built",

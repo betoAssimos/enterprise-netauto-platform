@@ -26,6 +26,7 @@ rtr-01:
       - description: rtr02
         ip: 10.0.0.2
         remote_as: 65002
+        update_source: Loopback0
       bgp_router_id: 1.1.1.1
     manufacturer: Cisco
     model: IOSv
@@ -42,6 +43,7 @@ rtr-02:
       - description: rtr01
         ip: 10.0.0.1
         remote_as: 65001
+        update_source: Loopback0
       bgp_router_id: 2.2.2.2
     manufacturer: Cisco
     model: IOSv

@@ -49,3 +49,15 @@ router bgp {{ bgp_asn }}
  neighbor {{ neighbor.ip }} shutdown
 {% endif %}
 {% endfor %}
+!
+ address-family ipv4
+{% for neighbor in neighbors %}
+  neighbor {{ neighbor.ip }} activate
+{% endfor %}
+{% if redistribute_ospf | default(false) %}
+  redistribute ospf 1 match internal external 1 external 2
+{% endif %}
+{% if redistribute_connected | default(false) %}
+  redistribute connected
+{% endif %}
+ exit-address-family
