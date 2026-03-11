@@ -58,8 +58,10 @@ def main():
         print(f"Inventory OK -- {len(hosts)} devices: {list(hosts.keys())}")
 
     elif module == "deploy" and action == "interfaces":
-        from automation.workflows.deploy_interfaces_workflow import run_workflow
-        run_workflow()
+        from automation.test_connection import nr
+        from automation.workflows.deploy_interfaces_workflow import run_interfaces_deploy
+        result = run_interfaces_deploy(nr)
+        print(result)
 
     elif module == "deploy" and action == "bgp":
         from automation.test_connection import nr

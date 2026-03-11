@@ -14,8 +14,8 @@ from pydantic import Field, SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
-class NautobotSettings(BaseSettings):
-    model_config = SettingsConfigDict(env_prefix="NAUTOBOT_")
+class NetBoxSettings(BaseSettings):
+    model_config = SettingsConfigDict(env_prefix="NETBOX_", env_file=".env", extra="ignore")
 
     url: str = Field(..., description="Base URL e.g. http://localhost:8080")
     token: SecretStr = Field(..., description="API token — never logged")
@@ -71,7 +71,7 @@ class PlatformSettings(BaseSettings):
         extra="ignore",
     )
 
-    nautobot: NautobotSettings = Field(default_factory=NautobotSettings)
+    netbox: NetBoxSettings = Field(default_factory=NetBoxSettings)
     scrapli: ScrapliSettings = Field(default_factory=ScrapliSettings)
     nornir: NornirSettings = Field(default_factory=NornirSettings)
     prometheus: PrometheusSettings = Field(default_factory=PrometheusSettings)
