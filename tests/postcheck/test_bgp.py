@@ -13,6 +13,12 @@
 
 from pyats import aetest
 from pyats.easypy import run
+from pathlib import Path
+from dotenv import load_dotenv
+import os
+
+BASE_DIR = Path(__file__).resolve().parents[2]
+load_dotenv(dotenv_path=BASE_DIR / ".env")
 
 
 # ---------------------------------------------------------------------------
@@ -53,7 +59,9 @@ class CommonSetup(aetest.CommonSetup):
     def connect_to_devices(self, testbed):
         for device_name in BGP_EXPECTED:
             device = testbed.devices[device_name]
-            device.connect(log_stdout=False)
+            device.credentials.default.username = os.environ.get('DEVICE_USERNAME')
+            device.credentials.default.password = os.environ.get('DEVICE_PASSWORD')
+            device.connect(log_stdout=False, timeout=60)
 
 
 # ---------------------------------------------------------------------------
