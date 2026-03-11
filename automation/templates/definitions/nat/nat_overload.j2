@@ -1,0 +1,23 @@
+{#
+  automation/templates/definitions/nat/nat_overload.j2
+  Renders NAT overload (PAT) configuration for Cisco IOS-XE (c8000v).
+  Required context variables:
+    nat_outside_interface (str)  : Interface for NAT outside (overload source)
+    nat_acl_entries       (list) : List of ACL entries, each containing:
+        seq         (int) : Sequence number
+        action      (str) : permit or deny
+        src         (str) : Source network
+        src_wildcard (str): Source wildcard mask
+        dst         (str) : Destination network or "any"
+        dst_wildcard (str): Destination wildcard mask (omit if dst is "any")
+#}
+ip access-list extended NAT_ACL
+{% for entry in nat_acl_entries %}
+{% if entry.dst == "any" %}
+ {{ entry.seq }} {{ entry.action }} ip {{ entry.src }} {{ entry.src_wildcard }} any
+{% else %}
+ {{ entry.seq }} {{ entry.action }} ip {{ entry.src }} {{ entry.src_wildcard }} {{ entry.dst }} {{ entry.dst_wildcard }}
+{% endif %}
+{% endfor %}
+!
+ip nat inside source list NAT_ACL interface {{ nat_outside_interface }} overload

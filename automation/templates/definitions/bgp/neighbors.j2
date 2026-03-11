@@ -1,25 +1,25 @@
 {#
   automation/templates/definitions/bgp/neighbors.j2
-
   Renders BGP neighbor stanzas for Cisco IOS-XE (c8000v).
-
   Required context variables:
     bgp_asn       (int)  : Local AS number
     neighbors     (list) : List of neighbor dicts, each containing:
         ip            (str)  : Neighbor IP address
         remote_as     (int)  : Remote AS number
         description   (str)  : Human-readable label
-
   Optional per-neighbor variables:
         update_source (str)  : Source interface, e.g. Loopback0
+        next_hop_self (bool) : Advertise self as next-hop
         route_map_in  (str)  : Inbound route-map name
         route_map_out (str)  : Outbound route-map name
         password      (str)  : MD5 authentication password
         shutdown      (bool) : Whether neighbor is admin-down
-
   Optional top-level variables:
-    bgp_router_id          (str)  : Explicit router-id
+    bgp_router_id            (str)  : Explicit router-id
     bgp_log_neighbor_changes (bool, default true)
+    bgp_networks             (list) : List of {prefix, mask} dicts
+    redistribute_ospf        (bool) : Redistribute OSPF into BGP
+    redistribute_connected   (bool) : Redistribute connected into BGP
 #}
 router bgp {{ bgp_asn }}
 {% if bgp_router_id is defined %}
@@ -53,7 +53,16 @@ router bgp {{ bgp_asn }}
  address-family ipv4
 {% for neighbor in neighbors %}
   neighbor {{ neighbor.ip }} activate
+{% if neighbor.next_hop_self | default(false) %}
+  neighbor {{ neighbor.ip }} next-hop-self
+{% endif %}
 {% endfor %}
+{% if bgp_networks is defined %}
+{% for net in bgp_networks %}
+  network {{ net.prefix }}{% if net.mask is defined %} mask {{ net.mask }}{% endif %}
+
+{% endfor %}
+{% endif %}
 {% if redistribute_ospf | default(false) %}
   redistribute ospf 1 match internal external 1 external 2
 {% endif %}

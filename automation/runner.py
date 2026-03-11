@@ -9,6 +9,8 @@ def main():
         print("  python automation/runner.py deploy interfaces")
         print("  python automation/runner.py deploy bgp")
         print("  python automation/runner.py drift bgp")
+        print("  python automation/runner.py deploy ospf")
+        print("  python automation/runner.py deploy nat")
         sys.exit(1)
 
     module = sys.argv[1]
@@ -67,6 +69,18 @@ def main():
         from automation.test_connection import nr
         from automation.workflows.bgp_workflow import run_bgp_deploy
         result = run_bgp_deploy(nr)
+        print(result)
+
+    elif module == "deploy" and action == "ospf":
+        from automation.test_connection import nr
+        from automation.workflows.ospf_workflow import run_ospf_deploy
+        result = run_ospf_deploy(nr)
+        print(result)
+
+    elif module == "deploy" and action == "nat":
+        from automation.test_connection import nr
+        from automation.workflows.nat_workflow import run_nat_deploy
+        result = run_nat_deploy(nr)
         print(result)
 
     elif module == "drift" and action == "bgp":

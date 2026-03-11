@@ -22,12 +22,55 @@ rtr-01:
   data:
     custom_fields:
       bgp_asn: 65001
+      bgp_router_id: 1.1.1.1
+      bgp_redistribute_connected: false
       bgp_neighbors:
-      - description: rtr02
+      - description: eBGP to rtr-02
         ip: 10.0.0.2
         remote_as: 65002
-        update_source: Loopback0
-      bgp_router_id: 1.1.1.1
+        next_hop_self: true
+      bgp_networks:
+      - prefix: 1.1.1.1
+        mask: 255.255.255.255
+      - prefix: 192.168.1.0
+        mask: 255.255.255.0
+      ospf_process: 1
+      ospf_router_id: 1.1.1.1
+      ospf_networks:
+      - network: 10.0.0.1
+        wildcard: 0.0.0.0
+        area: 0
+      - network: 10.1.1.0
+        wildcard: 0.0.0.3
+        area: 0
+      - network: 192.168.1.0
+        wildcard: 0.0.0.255
+        area: 0
+      nat_inside_interface: GigabitEthernet3
+      nat_outside_interface: GigabitEthernet2
+      nat_acl_entries:
+      - seq: 10
+        action: deny
+        src: 192.168.1.0
+        src_wildcard: 0.0.0.255
+        dst: 10.0.0.0
+        dst_wildcard: 0.255.255.255
+      - seq: 20
+        action: permit
+        src: 192.168.1.0
+        src_wildcard: 0.0.0.255
+        dst: any
+      - seq: 30
+        action: deny
+        src: 10.1.1.0
+        src_wildcard: 0.0.0.3
+        dst: 10.0.0.0
+        dst_wildcard: 0.255.255.255
+      - seq: 40
+        action: permit
+        src: 10.1.1.0
+        src_wildcard: 0.0.0.3
+        dst: any
     manufacturer: Cisco
     model: IOSv
     role: edge-router
@@ -39,12 +82,56 @@ rtr-02:
   data:
     custom_fields:
       bgp_asn: 65002
+      bgp_router_id: 2.2.2.2
+      bgp_redistribute_connected: false
       bgp_neighbors:
-      - description: rtr01
+      - description: eBGP to rtr-01
         ip: 10.0.0.1
         remote_as: 65001
-        update_source: Loopback0
-      bgp_router_id: 2.2.2.2
+        next_hop_self: true
+      bgp_networks:
+      - prefix: 2.2.2.2
+        mask: 255.255.255.255
+      - prefix: 192.168.2.0
+        mask: 255.255.255.0
+      ospf_process: 1
+      ospf_router_id: 2.2.2.2
+      ospf_redistribute_bgp: 65002
+      ospf_networks:
+      - network: 10.0.0.2
+        wildcard: 0.0.0.0
+        area: 0
+      - network: 10.2.2.0
+        wildcard: 0.0.0.3
+        area: 0
+      - network: 192.168.2.0
+        wildcard: 0.0.0.255
+        area: 0
+      nat_inside_interface: GigabitEthernet3
+      nat_outside_interface: GigabitEthernet2
+      nat_acl_entries:
+      - seq: 10
+        action: deny
+        src: 192.168.2.0
+        src_wildcard: 0.0.0.255
+        dst: 10.0.0.0
+        dst_wildcard: 0.255.255.255
+      - seq: 20
+        action: permit
+        src: 192.168.2.0
+        src_wildcard: 0.0.0.255
+        dst: any
+      - seq: 30
+        action: deny
+        src: 10.2.2.0
+        src_wildcard: 0.0.0.3
+        dst: 10.0.0.0
+        dst_wildcard: 0.255.255.255
+      - seq: 40
+        action: permit
+        src: 10.2.2.0
+        src_wildcard: 0.0.0.3
+        dst: any
     manufacturer: Cisco
     model: IOSv
     role: edge-router
