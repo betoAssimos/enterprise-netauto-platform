@@ -3,13 +3,37 @@
 # Enterprise Network Automation Lab Topology
 #
 # Topology overview:
-#   2x Cisco c8000v  — WAN routers, eBGP peering (AS65001 ↔ AS65002)
-#   2x Arista cEOS   — Distribution switches, OSPF with routers
-#   2x Linux hosts   — End hosts, one behind each Arista
+#   2x Cisco c8000v  — Edge routers, eBGP peering (AS65001 ↔ AS65002)
+#   2x Arista cEOS   — Core switches, MLAG pair (primary/secondary)
+#   2x Arista cEOS   — Access switches, LACP uplinks to core
+#   1x Linux svc-01  — Services host (NTP, syslog, DNS, DHCP)
+#   1x Linux inet-host — Internet simulation (dual-homed to both routers)
+#   4x Linux hosts   — End hosts (VLAN 10 users / VLAN 20 servers)
 #
-# Enterprise features:
-#   NAT overload on both routers (inside=LAN, outside=eBGP link)
-#   ACL on arista-02 — policy toggle for Grafana/Prometheus testing
+# Layer design:
+#   Edge  : rtr-01, rtr-02 — eBGP at WAN, OSPF area 0 toward core
+#   Core  : core-sw-01, core-sw-02 — MLAG pair, OSPF area 0, VRRP gateways
+#   Access: arista-01, arista-02 — L2 only, LACP port-channels to core
+#
+# IP plan:
+#   eBGP link            : 10.0.0.0/30
+#   rtr-01 to core-sw-01 : 10.1.0.0/30
+#   rtr-01 to core-sw-02 : 10.1.0.4/30
+#   rtr-02 to core-sw-01 : 10.2.0.0/30
+#   rtr-02 to core-sw-02 : 10.2.0.4/30
+#   inet-host rtr-01     : 203.0.113.0/30
+#   inet-host rtr-02     : 203.0.113.4/30
+#   VLAN 10 (users)      : 10.10.10.0/24, VRRP VIP .1
+#   VLAN 20 (servers)    : 10.20.20.0/24, VRRP VIP .1
+#   VLAN 99 (mgmt)       : 10.99.99.0/24, VRRP VIP .1
+#
+# Management network: 172.20.20.0/24
+#   rtr-01      172.20.20.11    core-sw-01  172.20.20.15
+#   rtr-02      172.20.20.12    core-sw-02  172.20.20.16
+#   arista-01   172.20.20.13    svc-01      172.20.20.20
+#   arista-02   172.20.20.14    inet-host   172.20.20.30
+#   host-01     172.20.20.21    host-02     172.20.20.22
+#   host-03     172.20.20.23    host-04     172.20.20.24
 #
 # Prerequisites:
 #   containerlab >= 0.48
@@ -32,7 +56,9 @@ topology:
 
   nodes:
 
-    # ── WAN Routers (Cisco c8000v IOS-XE) ─────────────────────────────────
+    # ── Edge Routers (Cisco c8000v IOS-XE) ────────────────────────────────
+    # eBGP at WAN edge, OSPF area 0 toward both core switches
+    # NAT overload on WAN-facing interface
 
     rtr-01:
       kind: cisco_c8000v
@@ -40,7 +66,7 @@ topology:
       mgmt-ipv4: 172.20.20.11
       labels:
         site: lab-dc01
-        role: core-router
+        role: edge-router
         vendor: cisco
         platform: iosxe
         managed: "true"
@@ -51,18 +77,22 @@ topology:
       mgmt-ipv4: 172.20.20.12
       labels:
         site: lab-dc01
-        role: core-router
+        role: edge-router
         vendor: cisco
         platform: iosxe
         managed: "true"
 
-    # ── Distribution Switches (Arista cEOS) ────────────────────────────────
+    # ── Core Switches (Arista cEOS) ────────────────────────────────────────
+    # MLAG pair — core-sw-01 is primary, core-sw-02 is secondary
+    # OSPF area 0 toward edge routers
+    # VRRP on SVIs for VLAN 10, 20, 99
+    # MLAG peer-link over Port-channel1
+    # MLAG keepalive over management network
 
-    arista-01:
+    core-sw-01:
       kind: ceos
       image: ceos:4.35.1F
-      mgmt-ipv4: 172.20.20.13
-      startup-config: configs/arista-01-initial.cfg
+      mgmt-ipv4: 172.20.20.15
       env:
         ETBA: 1
         SKIP_ZEROTOUCH_BARRIER_IN_SYSDBINIT: 1
@@ -73,7 +103,49 @@ topology:
         MGMT_INTF: eth0
       labels:
         site: lab-dc01
-        role: distribution-switch
+        role: core-switch
+        vendor: arista
+        platform: eos
+        managed: "true"
+
+    core-sw-02:
+      kind: ceos
+      image: ceos:4.35.1F
+      mgmt-ipv4: 172.20.20.16
+      env:
+        ETBA: 1
+        SKIP_ZEROTOUCH_BARRIER_IN_SYSDBINIT: 1
+        CEOS: 1
+        EOS_PLATFORM: ceoslab
+        container: docker
+        MAPETH0: 1
+        MGMT_INTF: eth0
+      labels:
+        site: lab-dc01
+        role: core-switch
+        vendor: arista
+        platform: eos
+        managed: "true"
+
+    # ── Access Switches (Arista cEOS) ──────────────────────────────────────
+    # L2 only — LACP port-channels to both core switches (MLAG)
+    # VLAN trunks toward core, access ports toward hosts
+
+    arista-01:
+      kind: ceos
+      image: ceos:4.35.1F
+      mgmt-ipv4: 172.20.20.13
+      env:
+        ETBA: 1
+        SKIP_ZEROTOUCH_BARRIER_IN_SYSDBINIT: 1
+        CEOS: 1
+        EOS_PLATFORM: ceoslab
+        container: docker
+        MAPETH0: 1
+        MGMT_INTF: eth0
+      labels:
+        site: lab-dc01
+        role: access-switch
         vendor: arista
         platform: eos
         managed: "true"
@@ -82,7 +154,6 @@ topology:
       kind: ceos
       image: ceos:4.35.1F
       mgmt-ipv4: 172.20.20.14
-      startup-config: configs/arista-02-initial.cfg
       env:
         ETBA: 1
         SKIP_ZEROTOUCH_BARRIER_IN_SYSDBINIT: 1
@@ -93,43 +164,149 @@ topology:
         MGMT_INTF: eth0
       labels:
         site: lab-dc01
-        role: distribution-switch
+        role: access-switch
         vendor: arista
         platform: eos
         managed: "true"
 
-    # ── End Hosts (Linux — nicolaka/netshoot) ──────────────────────────────
+    # ── Services Host (Linux) ──────────────────────────────────────────────
+    # Internal services: NTP (MD5 auth), syslog, DNS, DHCP
+    # Connected to core-sw-01 Eth7, VLAN 20 (servers)
+
+    svc-01:
+      kind: linux
+      image: nicolaka/netshoot:latest
+      mgmt-ipv4: 172.20.20.20
+      exec:
+        - ip addr add 10.20.20.100/24 dev eth1
+        - ip route add default via 10.20.20.1 dev eth1
+      labels:
+        site: lab-dc01
+        role: services-host
+        managed: "false"
+
+    # ── Internet Simulation Host (Linux) ───────────────────────────────────
+    # Simulates dual-homed internet — one link per edge router
+    # Advertises loopbacks (8.8.8.8/32, 1.1.1.1/32) to test NAT
+
+    inet-host:
+      kind: linux
+      image: nicolaka/netshoot:latest
+      mgmt-ipv4: 172.20.20.30
+      exec:
+        - ip addr add 203.0.113.1/30 dev eth1
+        - ip addr add 203.0.113.5/30 dev eth2
+        - ip route add 0.0.0.0/0 via 203.0.113.2 dev eth1
+      labels:
+        site: lab-dc01
+        role: inet-simulation
+        managed: "false"
+
+    # ── End Hosts (Linux) ──────────────────────────────────────────────────
+    # host-01, host-03 — VLAN 10 (users),   behind arista-01
+    # host-02, host-04 — VLAN 20 (servers),  behind arista-02
 
     host-01:
       kind: linux
       image: nicolaka/netshoot:latest
       mgmt-ipv4: 172.20.20.21
       exec:
-        - ip addr add 192.168.1.10/24 dev eth1
-        - ip route add default via 192.168.1.1
-        - ip route add 192.168.2.0/24 via 192.168.1.1
-        - ip route add 10.1.1.0/30 via 192.168.1.1 dev eth1
+        - ip addr add 10.10.10.10/24 dev eth1
+        - ip route add default via 10.10.10.1 dev eth1
+      labels:
+        site: lab-dc01
+        role: end-host
+        vlan: "10"
+        managed: "false"
 
     host-02:
       kind: linux
       image: nicolaka/netshoot:latest
       mgmt-ipv4: 172.20.20.22
       exec:
-        - ip addr add 192.168.2.10/24 dev eth1
-        - ip route del default
-        - ip route add default via 192.168.2.1 dev eth1
-        - ip route add 192.168.1.0/24 via 192.168.2.1
-        - ip route add 10.2.2.0/30 via 192.168.2.1 dev eth1
+        - ip addr add 10.20.20.10/24 dev eth1
+        - ip route add default via 10.20.20.1 dev eth1
+      labels:
+        site: lab-dc01
+        role: end-host
+        vlan: "20"
+        managed: "false"
+
+    host-03:
+      kind: linux
+      image: nicolaka/netshoot:latest
+      mgmt-ipv4: 172.20.20.23
+      exec:
+        - ip addr add 10.10.10.20/24 dev eth1
+        - ip route add default via 10.10.10.1 dev eth1
+      labels:
+        site: lab-dc01
+        role: end-host
+        vlan: "10"
+        managed: "false"
+
+    host-04:
+      kind: linux
+      image: nicolaka/netshoot:latest
+      mgmt-ipv4: 172.20.20.24
+      exec:
+        - ip addr add 10.20.20.20/24 dev eth1
+        - ip route add default via 10.20.20.1 dev eth1
+      labels:
+        site: lab-dc01
+        role: end-host
+        vlan: "20"
+        managed: "false"
 
   links:
 
-    # eBGP link — eth1 maps to GigabitEthernet2 inside IOS-XE
+    # ── eBGP peering link ──────────────────────────────────────────────────
+    # rtr-01 eth1 → GigabitEthernet2 (10.0.0.1/30)
+    # rtr-02 eth1 → GigabitEthernet2 (10.0.0.2/30)
     - endpoints: ["rtr-01:eth1", "rtr-02:eth1"]
 
-    # OSPF links — eth2 maps to GigabitEthernet3 inside IOS-XE
-    - endpoints: ["rtr-01:eth2", "arista-01:eth1"]
-    - endpoints: ["rtr-02:eth2", "arista-02:eth1"]
+    # ── L3 OSPF: rtr-01 to core switches ──────────────────────────────────
+    # rtr-01 eth2 → GigabitEthernet3 (10.1.0.1/30) ↔ core-sw-01 Eth1
+    # rtr-01 eth3 → GigabitEthernet4 (10.1.0.5/30) ↔ core-sw-02 Eth1
+    - endpoints: ["rtr-01:eth2", "core-sw-01:eth1"]
+    - endpoints: ["rtr-01:eth3", "core-sw-02:eth1"]
 
-    # LAN links — Arista to hosts
-    - endpoints: ["arista-01:eth2", "host-01:eth1"]
-    - endpoints: ["arista-02:eth2", "host-02:eth1"]
+    # ── L3 OSPF: rtr-02 to core switches ──────────────────────────────────
+    # rtr-02 eth2 → GigabitEthernet3 (10.2.0.1/30) ↔ core-sw-01 Eth2
+    # rtr-02 eth3 → GigabitEthernet4 (10.2.0.5/30) ↔ core-sw-02 Eth2
+    - endpoints: ["rtr-02:eth2", "core-sw-01:eth2"]
+    - endpoints: ["rtr-02:eth3", "core-sw-02:eth2"]
+
+    # ── Internet simulation links ──────────────────────────────────────────
+    # rtr-01 eth4 → GigabitEthernet5 (203.0.113.2/30) ↔ inet-host eth1
+    # rtr-02 eth4 → GigabitEthernet5 (203.0.113.6/30) ↔ inet-host eth2
+    - endpoints: ["rtr-01:eth4", "inet-host:eth1"]
+    - endpoints: ["rtr-02:eth4", "inet-host:eth2"]
+
+    # ── MLAG peer-link (core-sw-01 ↔ core-sw-02) ──────────────────────────
+    # Two physical links bundled as Port-channel1 on both switches
+    # Carries all VLANs, syncs MAC/ARP tables between MLAG peers
+    - endpoints: ["core-sw-01:eth3", "core-sw-02:eth3"]
+    - endpoints: ["core-sw-01:eth4", "core-sw-02:eth4"]
+
+    # ── MLAG member ports: core to arista-01 ──────────────────────────────
+    # core-sw-01 Eth5 + core-sw-02 Eth5 → arista-01 Port-channel1
+    - endpoints: ["core-sw-01:eth5", "arista-01:eth1"]
+    - endpoints: ["core-sw-02:eth5", "arista-01:eth2"]
+
+    # ── MLAG member ports: core to arista-02 ──────────────────────────────
+    # core-sw-01 Eth6 + core-sw-02 Eth6 → arista-02 Port-channel1
+    - endpoints: ["core-sw-01:eth6", "arista-02:eth1"]
+    - endpoints: ["core-sw-02:eth6", "arista-02:eth2"]
+
+    # ── Services host ──────────────────────────────────────────────────────
+    # core-sw-01 Eth7 → svc-01 eth1 (VLAN 20, access port)
+    - endpoints: ["core-sw-01:eth7", "svc-01:eth1"]
+
+    # ── End hosts to access switches ───────────────────────────────────────
+    # arista-01: host-01 (VLAN 10), host-03 (VLAN 10)
+    # arista-02: host-02 (VLAN 20), host-04 (VLAN 20)
+    - endpoints: ["arista-01:eth3", "host-01:eth1"]
+    - endpoints: ["arista-01:eth4", "host-03:eth1"]
+    - endpoints: ["arista-02:eth3", "host-02:eth1"]
+    - endpoints: ["arista-02:eth4", "host-04:eth1"]
