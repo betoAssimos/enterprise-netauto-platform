@@ -1,19 +1,26 @@
 # Enterprise Network Automation Platform
 
-A lab project simulating how a real organization could manage network infrastructure
-using modern automation tools. Built for learning, certification prep (CCNP AUTOCOR),
-and portfolio purposes.
+A production-grade network automation platform built for learning, certification prep
+(CCNP AUTOCOR 350-901), and portfolio purposes. Simulates how a real organization manages
+enterprise network infrastructure using modern automation tools and practices.
 
-Stack:
+---
 
-- **Containerlab** — lab topology running Cisco IOSv routers, Arista cEOS switches and Linux hosts
-- **NetBox** — source of truth for device inventory, IP management and BGP data
-- **Nornir + Scrapli** — automation engine and SSH transport for device config
-- **RESTCONF** — API-based configuration for IOS XE using YANG models
-- **Jinja2** — config templates so I'm not hardcoding anything
-- **pyATS / Genie** — validation tests before and after config changes
-- **Prometheus + Grafana + SNMP + gNMI** — telemetry and monitoring
-- **GitLab CI/CD** — pipeline that runs everything automatically (GitHub is just a mirror)
+## Stack
+
+| Layer | Technology | Purpose |
+|-------|-----------|---------|
+| Lab simulation | Containerlab | Orchestrates multi-vendor virtual network |
+| Source of truth | NetBox v4.5.4 | Device inventory, IPAM, automation data |
+| Automation engine | Nornir + Scrapli | SSH-based config deployment and validation |
+| Config rendering | Jinja2 | Vendor-specific templates, no hardcoded config |
+| Validation | pyATS / Genie | Pre/post deployment state verification |
+| Drift detection | DeepDiff | Intended vs actual config comparison |
+| Rollback | Custom (rollback.py) | Automatic config restoration on failure |
+| Telemetry | Prometheus + Grafana | Metrics and dashboards |
+| Observability | SNMP + gNMI (gnmic) | Device metrics collection |
+| CI/CD | GitLab pipeline | Automated validation and deployment |
+| AI layer | FastMCP + LangChain + Ollama | Planned — network operations agent |
 
 ---
 
@@ -23,172 +30,235 @@ Stack:
 
 | Layer | Component | Status | Notes |
 |-------|-----------|--------|-------|
-| 0 | Repo structure, settings, logging | ✅ Complete | `load_dotenv`, modular layout |
-| 1 | NetBox inventory → Nornir | ✅ Complete | Dynamic inventory pulled from NetBox API |
-| 2 | Jinja2 config templates | ✅ Complete | BGP + interface templates |
-| 3 | Scrapli transport (CLI) | ✅ Complete | SSH config deployment |
-| 3 | RESTCONF transport | ✅ Complete | IOS XE YANG over HTTPS/JSON |
-| 4 | BGP workflow deployment | ✅ Complete | eBGP + redistribute connected on both routers |
-| 5 | pyATS precheck | ✅ Complete | Neighbors, sessions, prefix count |
-| 5 | pyATS postcheck | ✅ Complete | Neighbor state, AS integrity |
-| 6 | Drift detection | ✅ Complete | DeepDiff-based engine |
-| 7 | Rollback | ✅ Complete | Config restoration module |
-| 8 | Prometheus + Grafana | ✅ Complete | Telemetry stack running |
-| 8 | SNMP exporter | ✅ Complete | Scraping rtr-01 and rtr-02 |
-| 8 | gNMI | ✅ Complete | gnmic collector configured |
-| 9 | GitLab CI/CD | ⚠️ Partial | 5/6 jobs pass |
-| 10 | NAPALM transport | 🔜 Next | Multi-vendor abstraction layer |
-| 10 | SuzieQ | 🔜 Next | Network state observability |
-| 11 | Lab topology v2 | 📋 Planned | 3-tier WAN topology with iBGP |
-| 12 | Topology discovery | 📋 Planned | LLDP/BGP discovery automation tasks |
-| 12 | AI incident analysis | 📋 Planned | Topology-aware AI reasoning layer |
+| 0 | Repo structure, settings, logging | ✅ Complete | Domain-based layout, structlog |
+| 1 | NetBox source of truth | ✅ Complete | hosts.yaml as static SoT, NetBox as reference |
+| 2 | Jinja2 config templates | ✅ Complete | Multi-vendor templates per domain |
+| 3 | Scrapli transport | ✅ Complete | SSH deployment for Cisco IOS XE + Arista EOS |
+| 3 | RESTCONF transport | ✅ Complete | IOS XE YANG/JSON over HTTPS |
+| 4 | Interface deployment | ✅ Complete | Multi-platform: IOS XE + EOS (L3 + SVIs) |
+| 4 | OSPF deployment | ✅ Complete | Area 0 — edge routers + core switches |
+| 4 | BGP deployment | ✅ Complete | eBGP AS65001 ↔ AS65002 |
+| 4 | NAT deployment | ✅ Complete | PAT overload on edge WAN interfaces |
+| 4 | VLAN deployment | ✅ Complete | VLANs 10/20/99/4094 on all Arista switches |
+| 4 | Port-channel deployment | ✅ Complete | MLAG peer-link + member + access uplinks |
+| 4 | MLAG deployment | ✅ Complete | core-sw-01/02 Active/Connected |
+| 4 | VRRP deployment | ✅ Complete | VIPs 10.10.10.1, 10.20.20.1, 10.99.99.1 |
+| 5 | pyATS pre/post checks | ✅ Complete | BGP state validation |
+| 6 | Drift detection | ✅ Complete | DeepDiff engine |
+| 7 | Rollback | ✅ Complete | Automatic on post-check failure |
+| 8 | Telemetry stack | ✅ Complete | Prometheus + Grafana + SNMP + gNMI |
+| 9 | GitLab CI/CD | 🔄 Rebuilding | Pipeline being updated for new topology |
+| 10 | NTP | 🔜 Next | svc-01 as internal NTP server, MD5 auth |
+| 10 | BGP routing policy | 🔜 Next | Prefix lists, route maps |
+| 10 | SSH hardening | 🔜 Next | All devices |
+| 10 | DHCP / Syslog | 🔜 Next | svc-01 as services host |
+| 11 | NAPALM transport | 📋 Planned | Multi-vendor abstraction layer |
+| 12 | AI layer | 📋 Planned | FastMCP + LangChain + Ollama |
+| 12 | netclaw | 📋 Planned | Parallel AI network agent implementation |
 | 13 | Ansible integration | 📋 Planned | System-level and cross-platform tasks |
 | 13 | Terraform integration | 📋 Planned | Infrastructure provisioning |
-| 14 | Batfish | 🔮 Future | Config verification before deployment |
-| 14 | HashiCorp Vault | 🔮 Future | Proper secrets management |
-| 14 | Neo4j topology engine | 🔮 Future | Graph DB for dependency mapping |
-| 14 | Ollama (local LLM) | 🔮 Future | Local AI reasoning agent |
-| 14 | netclaw | 🔮 Future | Network-aware AI tooling |
+| 14 | pyATS learn/diff | 📋 Planned | Full feature snapshot pipeline integration |
+| 15 | Batfish | 🔮 Future | Pre-deployment config verification |
+| 15 | HashiCorp Vault | 🔮 Future | Proper secrets management |
+| 15 | Nokia SR Linux | 🔮 Future | gNMI-native telemetry node |
 
-**Legend:** ✅ Complete · ⚠️ Partial · 🔜 Next · 📋 Planned · 🔮 Future
+**Legend:** ✅ Complete · 🔄 In progress · 🔜 Next · 📋 Planned · 🔮 Future
 
 ---
 
 ## Architecture Principles
 
-Things I'm trying to keep consistent throughout the project:
+- Config is generated from templates, never hardcoded in automation code
+- `hosts.yaml` is the single source of truth for all per-device automation data
+- Every workflow is idempotent — safe to run multiple times
+- Every deployment runs pre/post validation with automatic rollback on failure
+- Platform is split by domain: routing, switching, services, security
+- Multi-vendor by design: Cisco IOS XE at edge, Arista EOS at core and access
 
-- Config is generated from templates, never hardcoded
-- Automation tasks are safe to run more than once (idempotent)
-- NetBox is the only source of truth — nothing is defined in two places
-- Every deployment runs validation before and after
-- Failures can be rolled back
-- Everything goes through the CI/CD pipeline, not run manually in production
-- Logs exist for every meaningful action
+---
+
+## Lab Topology — Current
+```
+                    [inet-host]
+                   /           \
+             rtr-01           rtr-02
+             AS65001          AS65002
+           Gi2 eBGP      eBGP Gi2
+           Gi3/Gi4 OSPF  OSPF Gi3/Gi4
+                │                │
+          core-sw-01 ══ core-sw-02
+          (MLAG primary)  (MLAG secondary)
+          OSPF, VRRP, SVIs
+               │                │
+          Po10 (MLAG)      Po20 (MLAG)
+         /       \          /       \
+    arista-01         arista-02
+    (access)           (access)
+    /      \           /      \
+host-01  host-03   host-02  host-04
+VLAN10   VLAN10    VLAN20   VLAN20
+
+svc-01 ── core-sw-01 Eth7 (VLAN 20)
+```
+
+**Node inventory:**
+
+| Node | Image | Role | AS / Domain |
+|------|-------|------|-------------|
+| rtr-01 | cisco_c8000v:17.15.04c | Edge router | AS65001 |
+| rtr-02 | cisco_c8000v:17.15.04c | Edge router | AS65002 |
+| core-sw-01 | ceos:4.35.1F | Core switch | MLAG primary |
+| core-sw-02 | ceos:4.35.1F | Core switch | MLAG secondary |
+| arista-01 | ceos:4.35.1F | Access switch | — |
+| arista-02 | ceos:4.35.1F | Access switch | — |
+| svc-01 | netshoot | Services host | NTP, syslog, DNS, DHCP |
+| inet-host | netshoot | Internet simulation | — |
+| host-01..04 | netshoot | End hosts | VLAN 10/20 |
+
+**Management network: 172.20.20.0/24**
+
+| Device | IP |
+|--------|----|
+| rtr-01 | 172.20.20.11 |
+| rtr-02 | 172.20.20.12 |
+| arista-01 | 172.20.20.13 |
+| arista-02 | 172.20.20.14 |
+| core-sw-01 | 172.20.20.15 |
+| core-sw-02 | 172.20.20.16 |
+| svc-01 | 172.20.20.20 |
+| inet-host | 172.20.20.30 |
+| host-01..04 | 172.20.20.21-24 |
+
+**Data plane IP plan:**
+
+| Link | Subnet |
+|------|--------|
+| eBGP rtr-01 ↔ rtr-02 | 10.0.0.0/30 |
+| rtr-01 → core-sw-01 | 10.1.0.0/30 |
+| rtr-01 → core-sw-02 | 10.1.0.4/30 |
+| rtr-02 → core-sw-01 | 10.2.0.0/30 |
+| rtr-02 → core-sw-02 | 10.2.0.4/30 |
+| rtr-01 → inet-host | 203.0.113.0/30 |
+| rtr-02 → inet-host | 203.0.113.4/30 |
+| VLAN 10 (users) | 10.10.10.0/24, VIP .1 |
+| VLAN 20 (servers) | 10.20.20.0/24, VIP .1 |
+| VLAN 99 (management) | 10.99.99.0/24, VIP .1 |
 
 ---
 
 ## Repository Structure
-
 ```
 enterprise-netauto-platform/
-├── containerlab/                   # Lab topology and device configs
-│   ├── topology.yml                # Containerlab topology definition
-│   └── configs/                    # Per-device startup configs
-├── automation/                     # Core automation modules
-│   ├── config.py                   # Settings and environment variables
-│   ├── inventory/                  # NetBox-backed Nornir inventory
-│   ├── templates/                  # Jinja2 config templates
-│   │   └── definitions/
-│   │       ├── bgp/                # BGP neighbor templates
-│   │       └── interfaces/         # Interface config templates
-│   ├── transports/                 # How we talk to devices
-│   │   └── restconf.py             # RESTCONF for IOS XE
-│   ├── tasks/                      # Low-level Nornir task functions
-│   ├── workflows/                  # Per-feature workflow orchestration
-│   ├── validators/                 # State validation checks
-│   ├── drift/                      # Drift detection (DeepDiff)
-│   ├── rollback/                   # Config rollback
-│   └── utils/                      # Logging and helpers
-├── tests/                          # pyATS validation test suites
-│   ├── testbed.yaml                # Device connection definitions for pyATS
-│   ├── precheck/                   # Tests that run before a change
-│   └── postcheck/                  # Tests that run after a change
-├── telemetry/                      # Monitoring stack
+├── containerlab/
+│   ├── topology.yml                # 12-node enterprise topology
+│   └── configs/                    # Reference device configs
+├── automation/
+│   ├── config.py                   # Pydantic settings, env variables
+│   ├── runner.py                   # CLI entrypoint for all workflows
+│   ├── test_connection.py          # Nornir init + connectivity test
+│   ├── nornir_config.yaml
+│   ├── inventory/
+│   │   ├── hosts.yaml              # Single source of truth (all device data)
+│   │   ├── groups.yaml             # Platform credentials and connection params
+│   │   └── netbox_seed.py          # Seed NetBox from inventory
+│   ├── templates/definitions/
+│   │   ├── interfaces/             # Layer 3 interfaces (Cisco + EOS)
+│   │   ├── routing/                # BGP, OSPF, NAT templates
+│   │   ├── switching/              # VLANs, port-channels, MLAG, VRRP
+│   │   ├── services/               # NTP, syslog (planned)
+│   │   └── security/               # SSH hardening (planned)
+│   ├── workflows/
+│   │   ├── interfaces/             # Multi-platform interface deploy
+│   │   ├── routing/                # BGP, OSPF, NAT workflows
+│   │   ├── switching/              # VLANs, port-channels, MLAG, VRRP workflows
+│   │   ├── services/               # NTP, syslog workflows (planned)
+│   │   └── security/               # Hardening workflows (planned)
+│   ├── tasks/                      # Core Nornir task functions
+│   ├── validators/                 # Pre/post check state validation
+│   ├── drift/                      # DeepDiff drift detection
+│   ├── rollback/                   # Config rollback on failure
+│   └── utils/                      # Structured logging
+├── tests/
+│   ├── testbed.yaml                # pyATS device definitions
+│   ├── precheck/                   # Baseline state tests
+│   └── postcheck/                  # Post-deployment regression tests
+├── telemetry/
 │   ├── docker-compose.yml
-│   ├── prometheus.yml
-│   ├── snmp.yml
-│   └── gnmic.yml
-├── netbox-docker/                  # NetBox running in Docker
-├── ai/                             # AI layer (not built yet)
+│   ├── prometheus.yml              # Scrape config (all 6 managed devices)
+│   ├── snmp.yml                    # SNMP community: netauto
+│   └── gnmic.yml                   # gNMI targets: all 4 Arista switches
+├── netbox-docker/                  # NetBox Docker deployment
+├── ai/                             # AI layer (planned)
 │   ├── agents/
 │   ├── prompts/
 │   ├── tools/
 │   └── memory/
-├── docs/                           # Notes, roadmap, architecture docs
-└── .gitlab-ci.yml                  # CI/CD pipeline
+└── docs/
+    └── automation_feature_roadmap.md
 ```
 
 ---
 
-## Lab Topology — Current (v1)
+## Runner Commands
+```bash
+# Connectivity
+python automation/runner.py connect test
+python automation/runner.py validate netbox
+python automation/runner.py validate inventory
 
+# Deployment — run in this order after lab restart
+python automation/runner.py deploy interfaces
+python automation/runner.py deploy ospf
+python automation/runner.py deploy nat
+python automation/runner.py deploy bgp
+python automation/runner.py deploy vlans
+python automation/runner.py deploy portchannels
+python automation/runner.py deploy mlag
+python automation/runner.py deploy vrrp
+
+# Drift detection
+python automation/runner.py drift bgp
 ```
-rtr-01 (AS65001, IOS XE) ──eBGP── rtr-02 (AS65002, IOS XE)
-        │                                   │
-   arista-01 (cEOS)                   arista-02 (cEOS)
-        │                                   │
-     host-01                            host-02
-```
-<img width="877" height="1418" alt="image" src="https://github.com/user-attachments/assets/685522a9-9349-4b0a-aa20-6aef03ef1702" />
-
-
-eBGP between AS65001 and AS65002 over Loopback0. Both routers redistributing connected
-routes. Verified: rtr-01 receiving 3 prefixes from rtr-02. Redistribution deployed via
-RESTCONF.
 
 ---
 
-## Lab Topology — Planned (v2)
+## Lab Restart Sequence
 
-3-tier WAN/enterprise design adding iBGP and route reflectors. Required for realistic
-failure propagation testing and the AI incident analysis layer.
+Cisco c8000v does not persist config across Containerlab restarts.
+Arista cEOS does. Run the full sequence after every restart.
+```bash
+# 1. Start NetBox
+cd ~/enterprise-netauto-platform/netbox-docker && docker compose up -d
 
+# 2. Start telemetry
+cd ~/enterprise-netauto-platform/telemetry && docker compose up -d
+
+# 3. Deploy topology (wait ~5 min for IOS XE to boot)
+cd ~/enterprise-netauto-platform/containerlab && sudo containerlab deploy -t topology.yml
+
+# 4. Activate venv and deploy
+cd ~/enterprise-netauto-platform && source venv/bin/activate
+python automation/runner.py connect test
+python automation/runner.py deploy interfaces
+python automation/runner.py deploy ospf
+python automation/runner.py deploy nat
+python automation/runner.py deploy bgp
+python automation/runner.py deploy vlans
+python automation/runner.py deploy portchannels
+python automation/runner.py deploy mlag
+python automation/runner.py deploy vrrp
 ```
-                 ┌─────────────────────────────────┐
-                 │          WAN / Edge Tier          │
-                 │                                   │
-            rtr-01 (AS65001) ──eBGP── rtr-02 (AS65002)
-                 │                           │
-                 └──────────┬────────────────┘
-                            │
-                 ┌──────────▼────────────────────────┐
-                 │      Core Tier (iBGP / RR)         │
-                 │                                   │
-            rtr-03 (AS65001) ────── rtr-04 (AS65001)
-                 │                           │
-                 └──────────┬────────────────┘
-                            │
-                 ┌──────────▼────────────────────────┐
-                 │         Access / ToR               │
-                 │                                   │
-            arista-01                           arista-02
-                 │                                   │
-             host-01                             host-02
-```
-
-See `docs/automation_feature_roadmap.md`.
-
----
-
-## Transport Layer
-
-Three ways the platform talks to devices, each serving a different purpose:
-
-**Scrapli** — SSH into the device and send CLI commands. Used for Arista cEOS and
-anywhere RESTCONF is not available.
-
-**RESTCONF** — HTTP API using YANG data models. Used on IOS XE to push config
-programmatically without screen-scraping CLI. Implemented in
-`automation/transports/restconf.py`.
-
-**NAPALM** *(planned)* — sits on top of the other transports and gives a single API
-that works across vendors. The idea is to stop writing `if iosxe... elif eos...` blocks
-in the workflow code.
 
 ---
 
 ## Validation
-
-Two test suites run against the devices using pyATS:
-
-- **precheck** — runs before any change. Checks that BGP neighbors exist, sessions are
-  established, and prefixes are being exchanged
-- **postcheck** — runs after deployment. Confirms neighbor state and AS numbers are still correct
-
 ```bash
+# pyATS BGP validation
 pyats run job tests/precheck/test_bgp.py --testbed tests/testbed.yaml
 pyats run job tests/postcheck/test_bgp.py --testbed tests/testbed.yaml
+
+# End-to-end connectivity
+docker exec clab-enterprise-netauto-lab-host-01 ping -c 3 10.20.20.10
 ```
 
 ---
@@ -197,91 +267,42 @@ pyats run job tests/postcheck/test_bgp.py --testbed tests/testbed.yaml
 
 Runs on GitLab CI/CD on every push. GitHub is kept in sync as a mirror.
 
-The pipeline runs these steps in order:
+Pipeline stages:
 
-1. **Check YAML and Python syntax** — makes sure nothing is broken before wasting time running anything
-2. **Generate inventory from NetBox** — pulls current device data
-3. **Run precheck tests** — validates current state before touching devices
-4. **Deploy configuration** — runs the Nornir workflows
-5. **Run postcheck tests** — confirms nothing broke after deployment
-6. **Telemetry health check** — verifies the monitoring stack is still collecting
+1. **build** — validate environment, dependencies, NetBox connectivity
+2. **prevalidation** — pyATS baseline capture before any changes
+3. **deploy** — run automation workflows (manual gate before touching devices)
+4. **postvalidation** — pyATS regression check after deployment
+
+Pipeline is being rebuilt for the new topology. Current `.gitlab-ci.yml` reflects
+the previous v1 design.
 
 ---
 
 ## Tool Decisions
 
-Notes on why I chose specific tools so I don't have to think through this again.
+### Why these tools
+
+| Tool | Role |
+|------|------|
+| Nornir | Core automation engine — Python-native, integrates with all platform components |
+| Scrapli | SSH transport — faster and more reliable than Paramiko for network devices |
+| pyATS / Genie | Validation — structured parsing, pre/post state comparison |
+| NetBox | Source of truth — DCIM + IPAM, API-driven, industry standard |
+| Prometheus + Grafana | Telemetry — time-series metrics, visual dashboards |
+| gnmic | gNMI collector — streaming telemetry from Arista switches |
+| Ansible | Planned — system-level tasks, Linux host configuration |
+| Terraform | Planned — infrastructure provisioning |
 
 ### Nornir vs Ansible vs Terraform
 
-These work at different layers and are not competing with each other.
+These work at different layers and are complementary, not competing.
 
-| Tool | What it does here |
-|------|-------------------|
-| **Nornir** | Core automation engine — handles device config, inventory, templates, drift detection, and eventually the AI layer. All in Python. |
-| **Ansible** | Planned for system-level tasks — setting up Linux hosts, cross-platform orchestration, anything that crosses the network/OS boundary |
-| **Terraform** | Planned for provisioning the infrastructure the lab runs on — Docker hosts, environment setup, possibly a cloud extension later |
-
-Nornir is the right choice for network devices here because everything else in the stack
-(pyATS, NetBox API, RESTCONF, future AI layer) is Python. Ansible fits better at the
-system layer where the logic is simpler and the module library covers more ground.
-
----
-
-## Future Work
-
-### Next up: NAPALM + SuzieQ
-
-**NAPALM** — adds vendor abstraction to the transport layer. Write workflows once,
-run them on IOS, EOS, or JunOS without changing the logic.
-
-**SuzieQ** — network state engine. Lets me query BGP state, topology, and interface
-status across all devices without SSHing into each one. Also a stepping stone toward
-the AI topology layer.
-
-### AI Incident Analysis
-
-Alerts alone aren't enough for root cause analysis — topology context is required.
-A BGP-down alert is meaningless without knowing what depends on that router. The
-planned architecture:
-
-```
-Network Devices
-      │
-      ▼
-Topology Discovery        ← collect LLDP, BGP peers, interface state via Nornir
-      │
-      ▼
-Topology Builder          ← turn that data into structured device relationships
-      │
-      ▼
-Topology Store            ← store in NetBox as cable/connection objects
-      │
-      ▼
-Topology Query API        ← FastAPI — GET /topology/device/{device}
-      │
-      ▼
-Incident Context Builder  ← combine alert + neighbors + services + recent changes
-      │
-      ▼
-AI Reasoning Engine       ← feed context to LLM, get root cause and next steps
-```
-
-Local LLM via **Ollama** (air-gapped, no external API calls). **netclaw** for
-network-specific tooling exposed to the agent. Long-term: swap NetBox topology store
-for **Neo4j** when graph queries get complex enough to need a real graph database.
-
-### Ansible and Terraform
-
-Ansible for host-level setup and cross-platform tasks. Terraform for provisioning the
-lab infrastructure itself, with a possible cloud extension later. Both planned once the
-core network automation layer is stable.
-
-### On the radar
-
-- **Batfish** — analyze config files offline and catch routing mistakes before deploying
-- **HashiCorp Vault** — replace the `.env` credential setup with proper secrets management
-- **Neo4j** — graph database for topology if NetBox becomes a bottleneck for relationship queries
+| Tool | Layer |
+|------|-------|
+| Nornir | Network device automation — config, validation, drift, AI integration |
+| Ansible | System/OS layer — Linux hosts, cross-platform orchestration |
+| Terraform | Infrastructure provisioning — Docker hosts, cloud extension |
 
 ---
 
@@ -289,30 +310,43 @@ core network automation layer is stable.
 
 - WSL Ubuntu 24.04
 - Python 3.12 (venv at `./venv`)
-- Docker with Compose v2
-- Containerlab
+- Docker with Compose V2
+- Containerlab v0.73+
 
 ---
 
 ## Getting Started
-
 ```bash
 git clone https://github.com/betoAssimos/enterprise-netauto-platform
 cd enterprise-netauto-platform
 python3 -m venv venv && source venv/bin/activate
 pip install -r requirements.txt
 cp .env.example .env
-# fill in .env with your NetBox token and device credentials
+# fill in .env: NETBOX_TOKEN, DEVICE_USERNAME, DEVICE_PASSWORD
 
-# start NetBox
+# Pull required images
+docker pull vrnetlab/cisco_c8000v:17.15.04c
+docker pull ceos:4.35.1F
+docker pull nicolaka/netshoot:latest
+
+# Start NetBox
 cd netbox-docker && docker compose up -d
 
-# start telemetry stack
+# Start telemetry
 cd telemetry && docker compose up -d
 
-# deploy lab topology
+# Deploy lab
 cd containerlab && sudo containerlab deploy -t topology.yml
 
-# run validation
-pyats run job tests/precheck/test_bgp.py --testbed tests/testbed.yaml
+# Wait ~5 minutes for IOS XE to boot, then:
+cd .. && source venv/bin/activate
+python automation/runner.py connect test
+python automation/runner.py deploy interfaces
+python automation/runner.py deploy ospf
+python automation/runner.py deploy nat
+python automation/runner.py deploy bgp
+python automation/runner.py deploy vlans
+python automation/runner.py deploy portchannels
+python automation/runner.py deploy mlag
+python automation/runner.py deploy vrrp
 ```
