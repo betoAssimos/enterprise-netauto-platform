@@ -11,6 +11,10 @@ def main():
         print("  python automation/runner.py drift bgp")
         print("  python automation/runner.py deploy ospf")
         print("  python automation/runner.py deploy nat")
+        print("  python automation/runner.py deploy vlans")
+        print("  python automation/runner.py deploy portchannels")
+        print("  python automation/runner.py deploy mlag")
+        print("  python automation/runner.py deploy vrrp")
         sys.exit(1)
 
     module = sys.argv[1]
@@ -95,6 +99,30 @@ def main():
         from automation.test_connection import nr
         from automation.workflows.routing.bgp_workflow import run_bgp_drift_check
         result = run_bgp_drift_check(nr)
+        print(result)
+
+    elif module == "deploy" and action == "vlans":
+        from automation.test_connection import nr
+        from automation.workflows.switching.vlans_workflow import run_vlans_deploy
+        result = run_vlans_deploy(nr)
+        print(result)
+
+    elif module == "deploy" and action == "portchannels":
+        from automation.test_connection import nr
+        from automation.workflows.switching.portchannels_workflow import run_portchannels_deploy
+        result = run_portchannels_deploy(nr)
+        print(result)
+
+    elif module == "deploy" and action == "mlag":
+        from automation.test_connection import nr
+        from automation.workflows.switching.mlag_workflow import run_mlag_deploy
+        result = run_mlag_deploy(nr)
+        print(result)
+
+    elif module == "deploy" and action == "vrrp":
+        from automation.test_connection import nr
+        from automation.workflows.switching.vrrp_workflow import run_vrrp_deploy
+        result = run_vrrp_deploy(nr)
         print(result)
 
     else:

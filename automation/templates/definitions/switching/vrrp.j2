@@ -1,0 +1,19 @@
+{#
+  automation/templates/definitions/switching/vrrp.j2
+
+  Arista EOS — VRRP configuration on core switch SVIs.
+  One VRRP group per SVI.
+
+  Context variable:
+    vrrp_groups (list): from custom_fields.vrrp_groups
+      vlan       (int) : VLAN ID matching the SVI
+      group      (int) : VRRP group number
+      priority   (int) : VRRP priority (higher wins)
+      virtual_ip (str) : VRRP virtual IP address
+#}
+{% for vg in vrrp_groups %}
+!
+interface Vlan{{ vg.vlan }}
+   vrrp {{ vg.group }} priority-level {{ vg.priority }}
+   vrrp {{ vg.group }} ipv4 {{ vg.virtual_ip }}
+{% endfor %}

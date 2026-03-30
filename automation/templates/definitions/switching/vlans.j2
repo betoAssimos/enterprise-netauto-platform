@@ -1,0 +1,20 @@
+{#
+  automation/templates/definitions/switching/vlans.j2
+
+  Arista EOS — VLAN configuration.
+  Applies to all Arista switches (core and access).
+
+  Context variable:
+    vlans (list): from custom_fields.vlans
+      id         (int) : VLAN ID
+      name       (str) : VLAN name
+      trunk_group (str): optional trunk group (e.g. MLAGPEER for VLAN 4094)
+#}
+{% for vlan in vlans %}
+!
+vlan {{ vlan.id }}
+   name {{ vlan.name }}
+{% if vlan.trunk_group is defined %}
+   trunk group {{ vlan.trunk_group }}
+{% endif %}
+{% endfor %}

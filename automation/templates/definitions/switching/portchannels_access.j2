@@ -1,0 +1,32 @@
+{#
+  automation/templates/definitions/switching/portchannels_access.j2
+
+  Arista EOS — Port-channel configuration for access switches.
+  Configures:
+    - Uplink port-channel toward core MLAG pair
+    - Access ports toward end hosts
+
+  Context variables from custom_fields:
+    uplink_portchannel (dict) : LACP uplink port-channel config
+    access_ports       (list) : access ports toward end hosts
+#}
+!
+! -- Uplink port-channel to core MLAG
+interface Port-Channel{{ uplink_portchannel.id }}
+   description {{ uplink_portchannel.description }}
+   switchport mode trunk
+   switchport trunk allowed vlan {{ uplink_portchannel.trunk_vlans }}
+!
+{% for member in uplink_portchannel.members %}
+interface {{ member }}
+   channel-group {{ uplink_portchannel.id }} mode active
+!
+{% endfor %}
+{% for port in access_ports %}
+! -- {{ port.description }}
+interface {{ port.interface }}
+   switchport mode access
+   switchport access vlan {{ port.vlan }}
+   description {{ port.description }}
+!
+{% endfor %}

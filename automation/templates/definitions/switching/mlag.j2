@@ -1,0 +1,31 @@
+{#
+  automation/templates/definitions/switching/mlag.j2
+
+  Arista EOS — MLAG domain configuration for core switches.
+  Configures:
+    - VLAN 4094 SVI as peer-link L3 interface
+    - MLAG domain with local/peer IPs and peer-link
+
+  Context variables from custom_fields:
+    mlag_domain_id  (int) : MLAG domain ID
+    mlag_peer_link  (str) : peer-link port-channel
+    mlag_local_ip   (str) : local MLAG peer IP
+    mlag_peer_ip    (str) : remote MLAG peer IP
+#}
+!
+! -- MLAG peer-link SVI
+no spanning-tree vlan-id 4094
+!
+interface Vlan4094
+   description MLAG peer-link L3
+   no autostate
+   ip address {{ mlag_local_ip }}/31
+!
+! -- MLAG domain configuration
+mlag configuration
+   domain-id {{ mlag_domain_id }}
+   local-interface Vlan4094
+   peer-address {{ mlag_peer_ip }}
+   peer-link {{ mlag_peer_link }}
+   reload-delay mlag 300
+   reload-delay non-mlag 330

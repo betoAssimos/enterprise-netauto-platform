@@ -1,0 +1,51 @@
+{#
+  automation/templates/definitions/switching/portchannels_core.j2
+
+  Arista EOS — Port-channel configuration for core switches.
+  Configures:
+    - MLAG peer-link (Port-Channel1) with peer-link members
+    - MLAG member port-channels toward access switches
+    - Access port toward svc-01
+
+  Context variables from custom_fields:
+    mlag_peer_link         (str)  : peer-link port-channel name
+    mlag_peer_link_members (list) : interfaces bundled into peer-link
+    mlag_portchannels      (list) : MLAG port-channels toward access switches
+    access_ports           (list) : access ports (e.g. svc-01)
+#}
+!
+! -- MLAG peer-link
+interface {{ mlag_peer_link }}
+   description MLAG peer-link
+   switchport mode trunk
+   switchport trunk group MLAGPEER
+!
+{% for member in mlag_peer_link_members %}
+interface {{ member }}
+   channel-group {{ mlag_peer_link | replace('Port-Channel', '') }} mode active
+!
+{% endfor %}
+{% for pc in mlag_portchannels %}
+! -- {{ pc.description }}
+interface Port-Channel{{ pc.port_channel_id }}
+   description {{ pc.description }}
+   switchport mode trunk
+   switchport trunk allowed vlan {{ pc.trunk_vlans }}
+   mlag {{ pc.mlag_id }}
+!
+{% for member in pc.members %}
+interface {{ member }}
+   channel-group {{ pc.port_channel_id }} mode active
+!
+{% endfor %}
+{% endfor %}
+{% if access_ports is defined %}
+{% for port in access_ports %}
+! -- {{ port.description }}
+interface {{ port.interface }}
+   switchport mode access
+   switchport access vlan {{ port.vlan }}
+   description {{ port.description }}
+!
+{% endfor %}
+{% endif %}
