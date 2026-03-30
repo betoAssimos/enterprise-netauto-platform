@@ -46,16 +46,24 @@ def main():
     elif module == "validate" and action == "inventory":
         import yaml
         path = "automation/inventory/hosts.yaml"
-        required = ["rtr-01", "rtr-02"]
+        required_fields = ["hostname", "groups"]
         try:
             with open(path) as f:
                 hosts = yaml.safe_load(f)
         except FileNotFoundError:
             print(f"ERROR: {path} not found")
             sys.exit(1)
-        missing = [d for d in required if d not in hosts]
-        if missing:
-            print(f"ERROR: Required devices missing: {missing}")
+        if not hosts:
+            print("ERROR: Inventory is empty")
+            sys.exit(1)
+        errors = []
+        for device, config in hosts.items():
+            for field in required_fields:
+                if field not in config:
+                    errors.append(f"{device}: missing required field '{field}'")
+        if errors:
+            for e in errors:
+                print(f"ERROR: {e}")
             sys.exit(1)
         print(f"Inventory OK -- {len(hosts)} devices: {list(hosts.keys())}")
 

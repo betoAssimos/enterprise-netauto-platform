@@ -1,3 +1,8 @@
+# automation/inventory/groups.yaml
+#
+# Nornir group definitions
+# Groups define shared connection parameters per platform.
+
 cisco:
   platform: cisco_ios
   username: admin
@@ -9,6 +14,7 @@ cisco:
       extras:
         auth_strict_key: false
         ssh_config_file: false
+
 arista:
   platform: arista_eos
   username: admin

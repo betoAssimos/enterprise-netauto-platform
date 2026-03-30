@@ -1,141 +1,449 @@
-arista-01:
-  data:
-    custom_fields: {}
-    manufacturer: Arista
-    model: cEOS
-    role: core-switch
-    site: lab
-  groups:
-  - arista
-  hostname: 172.20.20.13
-arista-02:
-  data:
-    custom_fields: {}
-    manufacturer: Arista
-    model: cEOS
-    role: core-switch
-    site: lab
-  groups:
-  - arista
-  hostname: 172.20.20.14
+# automation/inventory/hosts.yaml
+#
+# Nornir static inventory — Enterprise Network Automation Platform
+#
+# This file is the single source of truth for all per-device automation data.
+# custom_fields drive all workflow context builders.
+#
+# Device roles:
+#   edge-router  : rtr-01, rtr-02  (Cisco c8000v, IOS XE)
+#   core-switch  : core-sw-01, core-sw-02  (Arista cEOS, MLAG pair)
+#   access-switch: arista-01, arista-02  (Arista cEOS, L2 only)
+#
+# Management network: 172.20.20.0/24
+
+# ── Edge Routers (Cisco c8000v IOS XE) ────────────────────────────────────────
+
 rtr-01:
+  hostname: 172.20.20.11
+  groups:
+    - cisco
   data:
+    manufacturer: Cisco
+    model: c8000v
+    role: edge-router
+    site: lab-dc01
     custom_fields:
+
+      # BGP — eBGP to rtr-02 only
       bgp_asn: 65001
       bgp_router_id: 1.1.1.1
       bgp_redistribute_connected: false
+      bgp_redistribute_ospf: false
       bgp_neighbors:
-      - description: eBGP to rtr-02
-        ip: 10.0.0.2
-        remote_as: 65002
-        next_hop_self: true
+        - description: eBGP to rtr-02
+          ip: 10.0.0.2
+          remote_as: 65002
+          next_hop_self: true
       bgp_networks:
-      - prefix: 1.1.1.1
-        mask: 255.255.255.255
-      - prefix: 192.168.1.0
-        mask: 255.255.255.0
+        - prefix: 1.1.1.1
+          mask: 255.255.255.255
+
+      # OSPF — area 0, toward both core switches and loopback
       ospf_process: 1
       ospf_router_id: 1.1.1.1
       ospf_networks:
-      - network: 10.0.0.1
-        wildcard: 0.0.0.0
-        area: 0
-      - network: 10.1.1.0
-        wildcard: 0.0.0.3
-        area: 0
-      - network: 192.168.1.0
-        wildcard: 0.0.0.255
-        area: 0
-      nat_inside_interface: GigabitEthernet3
-      nat_outside_interface: GigabitEthernet2
+        - network: 1.1.1.1
+          wildcard: 0.0.0.0
+          area: 0
+        - network: 10.1.0.0
+          wildcard: 0.0.0.3
+          area: 0
+        - network: 10.1.0.4
+          wildcard: 0.0.0.3
+          area: 0
+
+      # NAT — inside: Gi3+Gi4 (core links), outside: Gi5 (inet-host)
+      nat_inside_interfaces:
+        - GigabitEthernet3
+        - GigabitEthernet4
+      nat_outside_interface: GigabitEthernet5
       nat_acl_entries:
-      - seq: 10
-        action: deny
-        src: 192.168.1.0
-        src_wildcard: 0.0.0.255
-        dst: 10.0.0.0
-        dst_wildcard: 0.255.255.255
-      - seq: 20
-        action: permit
-        src: 192.168.1.0
-        src_wildcard: 0.0.0.255
-        dst: any
-      - seq: 30
-        action: deny
-        src: 10.1.1.0
-        src_wildcard: 0.0.0.3
-        dst: 10.0.0.0
-        dst_wildcard: 0.255.255.255
-      - seq: 40
-        action: permit
-        src: 10.1.1.0
-        src_wildcard: 0.0.0.3
-        dst: any
-    manufacturer: Cisco
-    model: IOSv
-    role: edge-router
-    site: lab
-  groups:
-  - cisco
-  hostname: 172.20.20.11
+        - seq: 10
+          action: permit
+          src: 10.10.10.0
+          src_wildcard: 0.0.0.255
+          dst: any
+        - seq: 20
+          action: permit
+          src: 10.20.20.0
+          src_wildcard: 0.0.0.255
+          dst: any
+        - seq: 30
+          action: permit
+          src: 10.99.99.0
+          src_wildcard: 0.0.0.255
+          dst: any
+
 rtr-02:
+  hostname: 172.20.20.12
+  groups:
+    - cisco
   data:
+    manufacturer: Cisco
+    model: c8000v
+    role: edge-router
+    site: lab-dc01
     custom_fields:
+
+      # BGP — eBGP to rtr-01 only
       bgp_asn: 65002
       bgp_router_id: 2.2.2.2
       bgp_redistribute_connected: false
+      bgp_redistribute_ospf: false
       bgp_neighbors:
-      - description: eBGP to rtr-01
-        ip: 10.0.0.1
-        remote_as: 65001
-        next_hop_self: true
+        - description: eBGP to rtr-01
+          ip: 10.0.0.1
+          remote_as: 65001
+          next_hop_self: true
       bgp_networks:
-      - prefix: 2.2.2.2
-        mask: 255.255.255.255
-      - prefix: 192.168.2.0
-        mask: 255.255.255.0
+        - prefix: 2.2.2.2
+          mask: 255.255.255.255
+
+      # OSPF — area 0, toward both core switches and loopback
       ospf_process: 1
       ospf_router_id: 2.2.2.2
-      ospf_redistribute_bgp: 65002
       ospf_networks:
-      - network: 10.0.0.2
-        wildcard: 0.0.0.0
-        area: 0
-      - network: 10.2.2.0
-        wildcard: 0.0.0.3
-        area: 0
-      - network: 192.168.2.0
-        wildcard: 0.0.0.255
-        area: 0
-      nat_inside_interface: GigabitEthernet3
-      nat_outside_interface: GigabitEthernet2
+        - network: 2.2.2.2
+          wildcard: 0.0.0.0
+          area: 0
+        - network: 10.2.0.0
+          wildcard: 0.0.0.3
+          area: 0
+        - network: 10.2.0.4
+          wildcard: 0.0.0.3
+          area: 0
+
+      # NAT — inside: Gi3+Gi4 (core links), outside: Gi5 (inet-host)
+      nat_inside_interfaces:
+        - GigabitEthernet3
+        - GigabitEthernet4
+      nat_outside_interface: GigabitEthernet5
       nat_acl_entries:
-      - seq: 10
-        action: deny
-        src: 192.168.2.0
-        src_wildcard: 0.0.0.255
-        dst: 10.0.0.0
-        dst_wildcard: 0.255.255.255
-      - seq: 20
-        action: permit
-        src: 192.168.2.0
-        src_wildcard: 0.0.0.255
-        dst: any
-      - seq: 30
-        action: deny
-        src: 10.2.2.0
-        src_wildcard: 0.0.0.3
-        dst: 10.0.0.0
-        dst_wildcard: 0.255.255.255
-      - seq: 40
-        action: permit
-        src: 10.2.2.0
-        src_wildcard: 0.0.0.3
-        dst: any
-    manufacturer: Cisco
-    model: IOSv
-    role: edge-router
-    site: lab
+        - seq: 10
+          action: permit
+          src: 10.10.10.0
+          src_wildcard: 0.0.0.255
+          dst: any
+        - seq: 20
+          action: permit
+          src: 10.20.20.0
+          src_wildcard: 0.0.0.255
+          dst: any
+        - seq: 30
+          action: permit
+          src: 10.99.99.0
+          src_wildcard: 0.0.0.255
+          dst: any
+
+# ── Core Switches (Arista cEOS — MLAG pair) ───────────────────────────────────
+
+core-sw-01:
+  hostname: 172.20.20.15
   groups:
-  - cisco
-  hostname: 172.20.20.12
+    - arista
+  data:
+    manufacturer: Arista
+    model: cEOS
+    role: core-switch
+    site: lab-dc01
+    custom_fields:
+
+      # OSPF — area 0, routed links to both routers + SVI networks
+      ospf_process: 1
+      ospf_router_id: 3.3.3.3
+      ospf_networks:
+        - network: 3.3.3.3
+          wildcard: 0.0.0.0
+          area: 0
+        - network: 10.1.0.0
+          wildcard: 0.0.0.3
+          area: 0
+        - network: 10.2.0.0
+          wildcard: 0.0.0.3
+          area: 0
+        - network: 10.10.10.0
+          wildcard: 0.0.0.255
+          area: 0
+        - network: 10.20.20.0
+          wildcard: 0.0.0.255
+          area: 0
+        - network: 10.99.99.0
+          wildcard: 0.0.0.255
+          area: 0
+
+      # MLAG
+      mlag_domain_id: 1
+      mlag_role: primary
+      mlag_peer_link: Port-Channel1
+      mlag_peer_link_members:
+        - Ethernet3
+        - Ethernet4
+      mlag_local_ip: 169.254.0.0
+      mlag_peer_ip: 169.254.0.1
+      mlag_peer_mgmt_ip: 172.20.20.16
+
+      # VLANs
+      vlans:
+        - id: 10
+          name: users
+        - id: 20
+          name: servers
+        - id: 99
+          name: management
+        - id: 4094
+          name: mlag-peer
+          trunk_group: MLAGPEER
+
+      # L3 routed interfaces (toward routers)
+      routed_interfaces:
+        - name: Ethernet1
+          description: L3 to rtr-01 Gi3
+          ip_address: 10.1.0.2/30
+          ospf_area: 0
+          ospf_network_type: point-to-point
+        - name: Ethernet2
+          description: L3 to rtr-02 Gi3
+          ip_address: 10.2.0.2/30
+          ospf_area: 0
+          ospf_network_type: point-to-point
+
+      # SVIs (VLAN L3 gateways)
+      svis:
+        - vlan: 10
+          ip_address: 10.10.10.2/24
+          description: VLAN 10 users gateway
+        - vlan: 20
+          ip_address: 10.20.20.2/24
+          description: VLAN 20 servers gateway
+        - vlan: 99
+          ip_address: 10.99.99.2/24
+          description: VLAN 99 management gateway
+
+      # VRRP (primary — higher priority wins)
+      vrrp_groups:
+        - vlan: 10
+          group: 10
+          priority: 110
+          virtual_ip: 10.10.10.1
+        - vlan: 20
+          group: 20
+          priority: 110
+          virtual_ip: 10.20.20.1
+        - vlan: 99
+          group: 99
+          priority: 110
+          virtual_ip: 10.99.99.1
+
+      # MLAG port-channels toward access switches
+      mlag_portchannels:
+        - mlag_id: 10
+          port_channel_id: 10
+          description: MLAG to arista-01
+          members:
+            - Ethernet5
+          trunk_vlans: "10,20,99"
+        - mlag_id: 20
+          port_channel_id: 20
+          description: MLAG to arista-02
+          members:
+            - Ethernet6
+          trunk_vlans: "10,20,99"
+
+      # Services host port (svc-01, VLAN 20 access)
+      access_ports:
+        - interface: Ethernet7
+          vlan: 20
+          description: svc-01
+
+core-sw-02:
+  hostname: 172.20.20.16
+  groups:
+    - arista
+  data:
+    manufacturer: Arista
+    model: cEOS
+    role: core-switch
+    site: lab-dc01
+    custom_fields:
+
+      # OSPF — area 0, routed links to both routers + SVI networks
+      ospf_process: 1
+      ospf_router_id: 4.4.4.4
+      ospf_networks:
+        - network: 4.4.4.4
+          wildcard: 0.0.0.0
+          area: 0
+        - network: 10.1.0.4
+          wildcard: 0.0.0.3
+          area: 0
+        - network: 10.2.0.4
+          wildcard: 0.0.0.3
+          area: 0
+        - network: 10.10.10.0
+          wildcard: 0.0.0.255
+          area: 0
+        - network: 10.20.20.0
+          wildcard: 0.0.0.255
+          area: 0
+        - network: 10.99.99.0
+          wildcard: 0.0.0.255
+          area: 0
+
+      # MLAG
+      mlag_domain_id: 1
+      mlag_role: secondary
+      mlag_peer_link: Port-Channel1
+      mlag_peer_link_members:
+        - Ethernet3
+        - Ethernet4
+      mlag_local_ip: 169.254.0.1
+      mlag_peer_ip: 169.254.0.0
+      mlag_peer_mgmt_ip: 172.20.20.15
+
+      # VLANs
+      vlans:
+        - id: 10
+          name: users
+        - id: 20
+          name: servers
+        - id: 99
+          name: management
+        - id: 4094
+          name: mlag-peer
+          trunk_group: MLAGPEER
+
+      # L3 routed interfaces (toward routers)
+      routed_interfaces:
+        - name: Ethernet1
+          description: L3 to rtr-01 Gi4
+          ip_address: 10.1.0.6/30
+          ospf_area: 0
+          ospf_network_type: point-to-point
+        - name: Ethernet2
+          description: L3 to rtr-02 Gi4
+          ip_address: 10.2.0.6/30
+          ospf_area: 0
+          ospf_network_type: point-to-point
+
+      # SVIs (VLAN L3 gateways)
+      svis:
+        - vlan: 10
+          ip_address: 10.10.10.3/24
+          description: VLAN 10 users gateway
+        - vlan: 20
+          ip_address: 10.20.20.3/24
+          description: VLAN 20 servers gateway
+        - vlan: 99
+          ip_address: 10.99.99.3/24
+          description: VLAN 99 management gateway
+
+      # VRRP (secondary — lower priority)
+      vrrp_groups:
+        - vlan: 10
+          group: 10
+          priority: 90
+          virtual_ip: 10.10.10.1
+        - vlan: 20
+          group: 20
+          priority: 90
+          virtual_ip: 10.20.20.1
+        - vlan: 99
+          group: 99
+          priority: 90
+          virtual_ip: 10.99.99.1
+
+      # MLAG port-channels toward access switches
+      mlag_portchannels:
+        - mlag_id: 10
+          port_channel_id: 10
+          description: MLAG to arista-01
+          members:
+            - Ethernet5
+          trunk_vlans: "10,20,99"
+        - mlag_id: 20
+          port_channel_id: 20
+          description: MLAG to arista-02
+          members:
+            - Ethernet6
+          trunk_vlans: "10,20,99"
+
+# ── Access Switches (Arista cEOS — L2 only) ───────────────────────────────────
+
+arista-01:
+  hostname: 172.20.20.13
+  groups:
+    - arista
+  data:
+    manufacturer: Arista
+    model: cEOS
+    role: access-switch
+    site: lab-dc01
+    custom_fields:
+
+      # VLANs
+      vlans:
+        - id: 10
+          name: users
+        - id: 20
+          name: servers
+        - id: 99
+          name: management
+
+      # LACP uplink port-channel to core (MLAG)
+      uplink_portchannel:
+        id: 1
+        description: LACP uplink to core MLAG
+        mode: active
+        trunk_vlans: "10,20,99"
+        members:
+          - Ethernet1
+          - Ethernet2
+
+      # Access ports toward end hosts
+      access_ports:
+        - interface: Ethernet3
+          vlan: 10
+          description: host-01
+        - interface: Ethernet4
+          vlan: 10
+          description: host-03
+
+arista-02:
+  hostname: 172.20.20.14
+  groups:
+    - arista
+  data:
+    manufacturer: Arista
+    model: cEOS
+    role: access-switch
+    site: lab-dc01
+    custom_fields:
+
+      # VLANs
+      vlans:
+        - id: 10
+          name: users
+        - id: 20
+          name: servers
+        - id: 99
+          name: management
+
+      # LACP uplink port-channel to core (MLAG)
+      uplink_portchannel:
+        id: 1
+        description: LACP uplink to core MLAG
+        mode: active
+        trunk_vlans: "10,20,99"
+        members:
+          - Ethernet1
+          - Ethernet2
+
+      # Access ports toward end hosts
+      access_ports:
+        - interface: Ethernet3
+          vlan: 20
+          description: host-02
+        - interface: Ethernet4
+          vlan: 20
+          description: host-04
