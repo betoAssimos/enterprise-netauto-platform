@@ -1,17 +1,23 @@
 {#
   automation/templates/definitions/interfaces/layer3.j2
-  Renders Layer 3 interface configuration for Cisco IOS-XE (c8000v).
-  Required context variables:
-    interfaces (list) : List of interface dicts, each containing:
-        name          (str)  : Interface name, e.g. GigabitEthernet1
-        ip_address    (str)  : IP address with prefix, e.g. 10.0.0.1/30
-        description   (str)  : Interface description
-  Optional per-interface variables:
-        shutdown      (bool) : Whether interface is admin-down (default false)
-        mtu           (int)  : MTU override, e.g. 9000
-        nat_role      (str)  : "inside" or "outside" for NAT
-        ospf_area     (str)  : OSPF area if interface participates in OSPF
-        ospf_network  (str)  : OSPF network type, e.g. point-to-point
+
+  Cisco IOS XE — Layer 3 interface configuration.
+
+  Context variable:
+    interfaces (list): each item is a dict from custom_fields.interfaces
+
+  Required per interface:
+    name        (str): interface name, e.g. GigabitEthernet2
+    ip_address  (str): CIDR notation, e.g. 10.0.0.1/30
+    description (str): interface description
+
+  Optional per interface:
+    nat_role      (str) : "inside" or "outside"
+    ospf_area     (str) : OSPF area, e.g. "0"
+    ospf_process  (str) : OSPF process ID, default "1"
+    ospf_network  (str) : OSPF network type, e.g. point-to-point
+    shutdown      (bool): admin-down state, default false
+    mtu           (int) : MTU override
 #}
 {% for iface in interfaces %}
 !

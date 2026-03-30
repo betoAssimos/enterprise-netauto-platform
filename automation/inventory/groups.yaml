@@ -26,3 +26,4 @@ arista:
       extras:
         auth_strict_key: false
         ssh_config_file: false
+        auth_secondary: ""

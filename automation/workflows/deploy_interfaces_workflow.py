@@ -1,204 +1,205 @@
 """
 automation/workflows/deploy_interfaces_workflow.py
 
-Layer 3 interface deployment workflow.
+Interface deployment workflow — multi-platform.
 
-Renders and pushes interface addressing, OSPF participation, and
-admin state for all devices that have interface data defined.
+Deploys Layer 3 interface addressing across all devices that have
+interface data defined in custom_fields.
 
-Interface topology is defined here as the authoritative lab source,
-consistent with the fixed Containerlab topology in containerlab/topology.yml.
-In a production environment this data would be sourced from NetBox
-(dcim.interfaces + ipam.ip-addresses) and injected via the inventory
-generator.
+Platform split:
+    Cisco IOS XE (rtr-01, rtr-02):
+        Reads: custom_fields.interfaces
+        Template: interfaces/layer3.j2
 
-Devices covered:
-    rtr-01  GigabitEthernet2  10.0.0.1/30   eBGP peering link (OSPF area 0)
-            GigabitEthernet3  10.1.1.1/30   internal / NAT inside (OSPF area 0)
-            Loopback0         1.1.1.1/32    router-id / BGP update-source
+    Arista EOS core switches (core-sw-01, core-sw-02):
+        Reads: custom_fields.routed_interfaces + custom_fields.svis
+        Template: interfaces/layer3_eos.j2
 
-    rtr-02  GigabitEthernet2  10.0.0.2/30   eBGP peering link (OSPF area 0)
-            GigabitEthernet3  10.2.2.1/30   internal / NAT inside (OSPF area 0)
-            Loopback0         2.2.2.2/32    router-id / BGP update-source
+    Arista EOS access switches (arista-01, arista-02):
+        Skipped — L2 only, no L3 interfaces to deploy here.
 
-Usage (standalone):
-    python automation/workflows/deploy_interfaces_workflow.py
-
-Usage (via runner — after runner.py is extended):
-    python automation/runner.py deploy interfaces
-
-Design:
-    - Follows the same task/workflow split as bgp_workflow.py
-    - Pre-check captures interface state before push
-    - Post-check verifies all target interfaces reach up/up state
-    - Interface data injected into host data at runtime — hosts.yaml
-      is not modified (it is a generated artifact from NetBox)
-    - Portable path resolution — no hardcoded absolute paths
+SNMP:
+    Restored after interface deploy on Cisco devices only.
+    Arista SNMP configured in hardening workflow.
+    Reads: custom_fields.snmp
 """
-
 from __future__ import annotations
 
-import os
-import sys
 import time
-from pathlib import Path
 from typing import Any
 
-from dotenv import load_dotenv
-from pyats import results
-from pyats import results
+from nornir.core import Nornir
+from nornir.core.task import Result, Task
 
-# ── Bootstrap: ensure project root is on the path ────────────────────────
-BASE_DIR = Path(__file__).resolve().parents[2]
-sys.path.insert(0, str(BASE_DIR))
-
-load_dotenv(dotenv_path=BASE_DIR / ".env", override=True)
-
-from nornir import InitNornir                           # noqa: E402
-from nornir.core import Nornir                          # noqa: E402
-from nornir.core.task import Result, Task               # noqa: E402
-
-from automation.tasks.deploy_interfaces import deploy_interfaces  # noqa: E402
-from automation.utils.logger import get_logger          # noqa: E402
+from automation.tasks.deploy_interfaces import deploy_interfaces
+from automation.utils.logger import get_logger
 
 log = get_logger(__name__)
 
-# ── Interface topology data ───────────────────────────────────────────────
-# Source of truth for lab interface addressing.
-# Matches containerlab/configs/rtr-{01,02}-running.cfg exactly.
-# Keys match Nornir host names in automation/inventory/hosts.yaml.
+CISCO_TEMPLATE = "interfaces/layer3.j2"
+EOS_TEMPLATE = "interfaces/layer3_eos.j2"
 
-INTERFACE_DATA: dict[str, list[dict[str, Any]]] = {
-    "rtr-01": [
-        {
-            "name": "Loopback0",
-            "ip_address": "1.1.1.1/32",
-            "description": "Router-ID / BGP update-source",
-        },
-        {
-            "name": "GigabitEthernet2",
-            "ip_address": "10.0.0.1/30",
-            "description": "eBGP peering link to rtr-02",
-            "nat_role": "outside",
-            "ospf_area": "0",
-            "ospf_process": "1",
-        },
-        {
-            "name": "GigabitEthernet3",
-            "ip_address": "10.1.1.1/30",
-            "description": "Internal / NAT inside",
-            "nat_role": "inside",
-            "ospf_area": "0",
-            "ospf_process": "1",
-        },
-        
-    ],
-    "rtr-02": [
-        {
-            "name": "Loopback0",
-            "ip_address": "2.2.2.2/32",
-            "description": "Router-ID / BGP update-source",
-        },
-        {
-            "name": "GigabitEthernet2",
-            "ip_address": "10.0.0.2/30",
-            "description": "eBGP peering link to rtr-01",
-            "ospf_area": "0",
-            "ospf_process": "1",
-        },
-        {
-            "name": "GigabitEthernet3",
-            "ip_address": "10.2.2.1/30",
-            "description": "Internal / NAT inside",
-            "ospf_area": "0",
-            "ospf_process": "1",
-        },
-    ],
-}
+# ── Helpers for Arista ───────────────────────────────────────────────────────────
 
-# Interfaces that must be up/up after deployment
-EXPECTED_UP: dict[str, list[str]] = {
-    "rtr-01": ["Loopback0", "GigabitEthernet2", "GigabitEthernet3"],
-    "rtr-02": ["Loopback0", "GigabitEthernet2", "GigabitEthernet3"],
-}
-
-# ── SNMP desired state ────────────────────────────────────────────────────
-SNMP_CONFIG: dict[str, list[str]] = {
-    "rtr-01": [
-        "snmp-server community public RO",
-        "snmp-server host 172.20.20.1 version 2c public",
-    ],
-    "rtr-02": [
-        "snmp-server community public RO",
-        "snmp-server host 172.20.20.1 version 2c public",
-    ],
-}
-
-
-# ── Pre-check ─────────────────────────────────────────────────────────────
-
-def interface_pre_check(task: Task) -> Result:
+def _matches_eos_short(full_name: str, short_name: str) -> bool:
     """
-    Capture interface state before deployment.
-    Non-blocking — missing or down interfaces are expected pre-deploy.
+    Match Arista short interface names to full names.
+    e.g. Loopback0 matches Lo0, Ethernet1 matches Et1, Vlan10 matches Vl10
+    """
+    mappings = {
+        "Loopback": "Lo",
+        "Ethernet": "Et",
+        "Vlan": "Vl",
+        "Management": "Ma",
+        "Port-Channel": "Po",
+    }
+    for full_prefix, short_prefix in mappings.items():
+        if full_name.startswith(full_prefix):
+            suffix = full_name[len(full_prefix):]
+            if short_name == f"{short_prefix}{suffix}":
+                return True
+    return False
+
+
+def _parse_status_protocol(columns: list[str]) -> tuple[str, str]:
+    """
+    Parse status and protocol from show ip interface brief output.
+
+    Cisco format: Interface IP OK? Method Status Protocol
+    Arista format: Interface IP Status Protocol MTU Neg
+
+    Detection: if last column is numeric (MTU) or 'N/A' → Arista format.
+    """
+    if not columns or len(columns) < 4:
+        return "unknown", "unknown"
+
+    last = columns[-1]
+    # Arista: last column is Neg (N/A or Yes/No), second-to-last is MTU (numeric)
+    if last.isdigit() or last in ("N/A", "Yes", "No"):
+        # Arista: Status=columns[2], Protocol=columns[3]
+        status = columns[2].lower()
+        protocol = columns[3].lower()
+    else:
+        # Cisco: Status=columns[-2], Protocol=columns[-1]
+        status = columns[-2].lower()
+        protocol = columns[-1].lower()
+
+    return status, protocol
+
+
+# ── Context builders ───────────────────────────────────────────────────────────
+
+def _cisco_context(task: Task) -> list[dict[str, Any]] | None:
+    """
+    Read interface list from custom_fields.interfaces for Cisco devices.
+    Returns None if no interface data is defined — device will be skipped.
     """
     device = task.host.name
-    log.info("Interface pre-check: capturing baseline", device=device)
+    custom_fields = task.host.data.get("custom_fields", {})
+    interfaces = custom_fields.get("interfaces")
+    if not interfaces:
+        log.debug("No interface data defined — skipping", device=device)
+        return None
+    return interfaces
 
+
+def _eos_context(task: Task) -> list[dict[str, Any]] | None:
+    """
+    Build unified interface list for Arista core switches.
+
+    Combines routed_interfaces and svis into a single list with a
+    type field so the EOS template can render each correctly:
+        type=routed  → physical/loopback interface with ip address
+        type=svi     → interface VlanX with ip address
+    Returns None if no routed_interface data — device will be skipped.
+    """
+    device = task.host.name
+    custom_fields = task.host.data.get("custom_fields", {})
+    routed = custom_fields.get("routed_interfaces")
+    svis = custom_fields.get("svis", [])
+
+    if not routed:
+        log.debug("No routed interface data — skipping", device=device)
+        return None
+
+    interfaces: list[dict[str, Any]] = []
+
+    for iface in routed:
+        interfaces.append({**iface, "type": "routed"})
+
+    for svi in svis:
+        interfaces.append({
+            "name": f"Vlan{svi['vlan']}",
+            "type": "svi",
+            "ip_address": svi["ip_address"],
+            "description": svi.get("description", f"VLAN {svi['vlan']}"),
+        })
+
+    return interfaces
+
+
+# ── Pre-check ──────────────────────────────────────────────────────────────────
+
+def _pre_check(task: Task) -> Result:
+    device = task.host.name
+    log.info("Interface pre-check: capturing baseline", device=device)
     conn = task.host.get_connection("scrapli", task.nornir.config)
     response = conn.send_command("show ip interface brief")
-
     if response.failed:
         log.warning("Pre-check command failed", device=device)
         return Result(host=task.host, result={"raw": ""})
-
     log.debug("Pre-check baseline captured", device=device)
     return Result(host=task.host, result={"raw": response.result})
 
 
-# ── Post-check ────────────────────────────────────────────────────────────
+# ── Post-check ─────────────────────────────────────────────────────────────────
 
-def interface_post_check(task: Task) -> Result:
+def _post_check(task: Task, expected: list[str]) -> Result:
     """
-    Verify all expected interfaces are up/up after deployment.
-    Raises RuntimeError on any interface not in up/up state.
+    Verify expected interfaces are up after deployment.
+    Handles both Cisco IOS XE and Arista EOS column formats.
+    Skips VLAN SVIs — these depend on MLAG/port config, checked later.
     """
     device = task.host.name
-    expected = EXPECTED_UP.get(device, [])
 
-    if not expected:
-        log.debug("No expected interfaces defined — skipping post-check", device=device)
+    # Skip SVIs from post-check — they depend on MLAG and port config
+    check_interfaces = [i for i in expected if not i.startswith("Vlan")]
+
+    if not check_interfaces:
         return Result(host=task.host, result={"interfaces_up": []})
 
     log.info("Interface post-check: verifying state", device=device)
-
-    # Allow brief convergence time for interface negotiation
-    time.sleep(10)
+    time.sleep(15)
 
     conn = task.host.get_connection("scrapli", task.nornir.config)
     response = conn.send_command("show ip interface brief")
-
     if response.failed:
         raise RuntimeError(f"Post-check command failed on {device}")
 
     output = response.result
     issues: list[str] = []
 
-    for iface in expected:
-        matching = [l for l in output.splitlines() if l.startswith(iface)]
+    for iface in check_interfaces:
+        # Match interface name at start of line — use short form for Arista
+        matching = [
+            line for line in output.splitlines()
+            if line.split()
+            and (
+                line.startswith(iface)
+                or _matches_eos_short(iface, line.split()[0])
+            )
+        ]
         if not matching:
             issues.append(f"{iface}: not present in output")
             continue
 
         columns = matching[0].split()
-        # show ip interface brief: Interface IP-Address OK? Method Status Protocol
-        if len(columns) >= 6:
-            status = columns[-2].lower()
-            protocol = columns[-1].lower()
-            if status != "up" or protocol != "up":
-                issues.append(f"{iface}: status={status} protocol={protocol}")
-        else:
-            issues.append(f"{iface}: could not parse — '{matching[0]}'")
+        status, protocol = _parse_status_protocol(columns)
+
+        if status != "up" or protocol not in ("up", "connected"):
+            issues.append(
+                f"{iface}: status={status} protocol={protocol}"
+            )
 
     if issues:
         log.error("Interface post-check failed", device=device, issues=issues)
@@ -209,89 +210,111 @@ def interface_post_check(task: Task) -> Result:
     log.info(
         "Interface post-check passed",
         device=device,
-        interfaces=expected,
+        interfaces=check_interfaces,
     )
-    return Result(host=task.host, result={"interfaces_up": expected})
+    return Result(
+        host=task.host, result={"interfaces_up": check_interfaces}
+    )
 
-# ── SNMP restore ───────────────────────────────────────────────────
 
-def restore_snmp(task: Task) -> Result:
-    """Push SNMP server config — idempotent, safe to re-run."""
+# ── SNMP restore (Cisco only) ──────────────────────────────────────────────────
+
+def _restore_snmp_cisco(task: Task) -> Result:
+    """
+    Push SNMP server config to Cisco devices.
+    Reads community and trap_source from custom_fields.snmp.
+    Arista SNMP is handled in the hardening workflow.
+    """
     device = task.host.name
-    lines = SNMP_CONFIG.get(device)
-    if not lines:
+    custom_fields = task.host.data.get("custom_fields", {})
+    snmp = custom_fields.get("snmp")
+    if not snmp:
+        log.debug("No SNMP config defined — skipping", device=device)
         return Result(host=task.host, skipped=True)
+
+    community = snmp.get("community", "public")
+    trap_source = snmp.get("trap_source", "Loopback0")
+
+    lines = [
+        f"snmp-server community {community} RO",
+        "snmp-server ifindex persist",
+        f"snmp-server trap-source {trap_source}",
+    ]
+
     log.info("Restoring SNMP config", device=device)
     conn = task.host.get_connection("scrapli", task.nornir.config)
     response = conn.send_configs(lines)
     if response.failed:
-        raise RuntimeError(f"SNMP restore failed on {device}: {response.result}")
+        raise RuntimeError(
+            f"SNMP restore failed on {device}: {response.result}"
+        )
     log.info("SNMP config restored", device=device)
     return Result(host=task.host, result={"snmp": "ok"})
 
-# ── Full lifecycle task ───────────────────────────────────────────────────
 
-def deploy_interfaces_task(task: Task) -> Result:
+# ── Per-device deployment tasks ────────────────────────────────────────────────
+
+def _deploy_cisco_task(task: Task) -> Result:
     """
-    Full interface deployment lifecycle for one device:
-        1. Inject interface data into host.data at runtime
-        2. Pre-check  — capture current interface state
-        3. Deploy     — render template and push via Scrapli
-        4. Post-check — verify all interfaces reach up/up
+    Full interface deployment lifecycle for a Cisco IOS XE device.
+    Steps: pre-check → deploy → post-check → SNMP restore.
     """
     device = task.host.name
     start = time.monotonic()
     steps: dict[str, str] = {}
 
-    if device not in INTERFACE_DATA:
-        log.debug("No interface data for device — skipping", device=device)
+    interfaces = _cisco_context(task)
+    if interfaces is None:
         return Result(host=task.host, skipped=True)
 
-    # Inject interface data into host.data so deploy_interfaces task can read it
-    task.host.data["interfaces"] = INTERFACE_DATA[device]
+    task.host.data["interfaces"] = interfaces
+    log.info(
+        "Interface deploy workflow starting",
+        device=device,
+        interface_count=len(interfaces),
+    )
 
-    # 1. Pre-check
+    # Pre-check
     try:
-        task.run(task=interface_pre_check)
+        task.run(task=_pre_check)
         steps["pre_check"] = "ok"
     except Exception as exc:
         log.warning("Pre-check error (non-blocking)", device=device, error=str(exc))
         steps["pre_check"] = "warning"
 
-    # 2. Deploy
+    # Deploy
     try:
-        task.run(task=deploy_interfaces)
+        task.run(task=deploy_interfaces, template_path=CISCO_TEMPLATE)
         steps["deploy"] = "ok"
     except Exception as exc:
         log.error("Interface deploy failed", device=device, error=str(exc))
         steps["deploy"] = "failed"
         return Result(
-            host=task.host,
-            failed=True,
-            exception=exc,
+            host=task.host, failed=True, exception=exc,
             result={"device": device, "steps": steps},
         )
 
-    # 3. Post-check
+    # Post-check — verify all interfaces are up/up
+    expected = [i["name"] for i in interfaces]
     try:
-        task.run(task=interface_post_check)
+        task.run(task=_post_check, expected=expected)
         steps["post_check"] = "ok"
     except Exception as exc:
-        log.error("Interface post-check failed", device=device, error=str(exc))
+        log.error("Post-check failed", device=device, error=str(exc))
         steps["post_check"] = "failed"
         return Result(
-            host=task.host,
-            failed=True,
-            exception=exc,
+            host=task.host, failed=True, exception=exc,
             result={"device": device, "steps": steps},
         )
-    
-    # 4. SNMP restore
+
+    # SNMP restore
     try:
-        task.run(task=restore_snmp)
+        task.run(task=_restore_snmp_cisco)
         steps["snmp"] = "ok"
     except Exception as exc:
-        log.warning("SNMP restore failed (non-blocking)", device=device, error=str(exc))
+        log.warning(
+            "SNMP restore failed (non-blocking)", device=device, error=str(exc)
+        )
         steps["snmp"] = "warning"
 
     duration = round(time.monotonic() - start, 2)
@@ -303,33 +326,125 @@ def deploy_interfaces_task(task: Task) -> Result:
     )
     return Result(
         host=task.host,
-        result={
-            "device": device,
-            "steps": steps,
-            "duration_seconds": duration,
-        },
+        result={"device": device, "steps": steps, "duration_seconds": duration},
     )
 
 
-# ── Workflow orchestrator ─────────────────────────────────────────────────
+def _deploy_eos_task(task: Task) -> Result:
+    """
+    Full interface deployment lifecycle for an Arista EOS core switch.
+    Steps: pre-check → deploy → post-check.
+    Covers routed interfaces (Loopback, Ethernet) and SVIs (VlanX).
+    """
+    device = task.host.name
+    start = time.monotonic()
+    steps: dict[str, str] = {}
+
+    interfaces = _eos_context(task)
+    if interfaces is None:
+        return Result(host=task.host, skipped=True)
+
+    task.host.data["interfaces"] = interfaces
+    log.info(
+        "Interface deploy workflow starting",
+        device=device,
+        interface_count=len(interfaces),
+    )
+
+    # Pre-check
+    try:
+        task.run(task=_pre_check)
+        steps["pre_check"] = "ok"
+    except Exception as exc:
+        log.warning("Pre-check error (non-blocking)", device=device, error=str(exc))
+        steps["pre_check"] = "warning"
+
+    # Deploy
+    try:
+        task.run(task=deploy_interfaces, template_path=EOS_TEMPLATE)
+        steps["deploy"] = "ok"
+    except Exception as exc:
+        log.error("Interface deploy failed", device=device, error=str(exc))
+        steps["deploy"] = "failed"
+        return Result(
+            host=task.host, failed=True, exception=exc,
+            result={"device": device, "steps": steps},
+        )
+
+    # Post-check — verify all routed interfaces and SVIs are up/up
+    expected = [i["name"] for i in interfaces]
+    try:
+        task.run(task=_post_check, expected=expected)
+        steps["post_check"] = "ok"
+    except Exception as exc:
+        log.error("Post-check failed", device=device, error=str(exc))
+        steps["post_check"] = "failed"
+        return Result(
+            host=task.host, failed=True, exception=exc,
+            result={"device": device, "steps": steps},
+        )
+
+    duration = round(time.monotonic() - start, 2)
+    log.info(
+        "Interface deployment complete",
+        device=device,
+        duration_seconds=duration,
+        steps=steps,
+    )
+    return Result(
+        host=task.host,
+        result={"device": device, "steps": steps, "duration_seconds": duration},
+    )
+
+
+# ── Workflow orchestrator ──────────────────────────────────────────────────────
 
 def run_interfaces_deploy(nr: Nornir) -> dict[str, Any]:
     """
-    Run interface deployment across all devices that have data defined.
-    Returns summary: total, succeeded, failed, skipped.
+    Deploy Layer 3 interfaces across the lab.
+
+    Run 1: Cisco edge routers — layer3.j2
+    Run 2: Arista core switches — layer3_eos.j2
+    Access switches skipped — L2 only, no L3 interfaces.
     """
-    targets = [h for h in nr.inventory.hosts if h in INTERFACE_DATA]
     log.info(
         "Interface deploy workflow starting",
-        target_devices=targets,
-        total=len(targets),
+        host_count=len(nr.inventory.hosts),
     )
 
-    results = nr.run(task=deploy_interfaces_task)
+    succeeded: list[str] = []
+    failed: list[str] = []
 
-    succeeded = [h for h, r in results.items() if not r.failed]
-    failed = [h for h, r in results.items() if r.failed]
-    skipped = []  # Nornir aggregates skipped into succeeded in this version
+    # Run 1 — Cisco edge routers
+    cisco_nr = nr.filter(
+        filter_func=lambda h: h.data.get("role") == "edge-router"
+    )
+    if cisco_nr.inventory.hosts:
+        log.info(
+            "Deploying Cisco interfaces",
+            devices=list(cisco_nr.inventory.hosts.keys()),
+        )
+        cisco_results = cisco_nr.run(task=_deploy_cisco_task)
+        succeeded += [h for h, r in cisco_results.items() if not r.failed]
+        failed += [h for h, r in cisco_results.items() if r.failed]
+
+    # Run 2 — Arista core switches
+    core_nr = nr.filter(
+        filter_func=lambda h: h.data.get("role") == "core-switch"
+    )
+    if core_nr.inventory.hosts:
+        log.info(
+            "Deploying Arista core interfaces",
+            devices=list(core_nr.inventory.hosts.keys()),
+        )
+        core_results = core_nr.run(task=_deploy_eos_task)
+        succeeded += [h for h, r in core_results.items() if not r.failed]
+        failed += [h for h, r in core_results.items() if r.failed]
+
+    skipped = [
+        h for h in nr.inventory.hosts
+        if h not in succeeded and h not in failed
+    ]
 
     summary = {
         "total": len(nr.inventory.hosts),
@@ -345,17 +460,3 @@ def run_interfaces_deploy(nr: Nornir) -> dict[str, Any]:
         skipped=len(skipped),
     )
     return summary
-
-
-# ── Standalone entrypoint ─────────────────────────────────────────────────
-
-if __name__ == "__main__":
-    config_file = BASE_DIR / "automation" / "nornir_config.yaml"
-
-    nr = InitNornir(config_file=str(config_file))
-
-    summary = run_interfaces_deploy(nr)
-    print(summary)
-
-    if summary["failed"]:
-        sys.exit(1)

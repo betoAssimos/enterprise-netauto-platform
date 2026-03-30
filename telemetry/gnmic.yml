@@ -1,6 +1,9 @@
-# gnmic configuration for enterprise-netauto-platform
-# Arista cEOS switches only - Cisco XE gNMI not available in this lab
-# Arista gNMI port: 6030
+# telemetry/gnmic.yml
+#
+# gNMI collector configuration — gnmic
+# Targets: all 4 Arista cEOS switches (core and access)
+# Cisco c8000v does not support gNMI in this lab image
+# Output: Prometheus metrics on :9804
 
 username: admin
 password: admin
@@ -15,6 +18,16 @@ targets:
     insecure: true
   172.20.20.14:6030:
     name: arista-02
+    username: admin
+    password: admin
+    insecure: true
+  172.20.20.15:6030:
+    name: core-sw-01
+    username: admin
+    password: admin
+    insecure: true
+  172.20.20.16:6030:
+    name: core-sw-02
     username: admin
     password: admin
     insecure: true
@@ -63,4 +76,10 @@ target-subscriptions:
   172.20.20.14:6030:
     - interfaces
     - bgp
+    - system
+  172.20.20.15:6030:
+    - interfaces
+    - system
+  172.20.20.16:6030:
+    - interfaces
     - system

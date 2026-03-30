@@ -74,6 +74,42 @@ rtr-01:
           src: 10.99.99.0
           src_wildcard: 0.0.0.255
           dst: any
+      # Interfaces
+      interfaces:
+        - name: Loopback0
+          ip_address: 1.1.1.1/32
+          description: Router-ID / BGP update-source
+
+        - name: GigabitEthernet2
+          ip_address: 10.0.0.1/30
+          description: eBGP peering link to rtr-02
+          ospf_area: "0"
+          ospf_process: "1"
+
+        - name: GigabitEthernet3
+          ip_address: 10.1.0.1/30
+          description: L3 OSPF link to core-sw-01
+          nat_role: inside
+          ospf_area: "0"
+          ospf_process: "1"
+
+        - name: GigabitEthernet4
+          ip_address: 10.1.0.5/30
+          description: L3 OSPF link to core-sw-02
+          nat_role: inside
+          ospf_area: "0"
+          ospf_process: "1"
+
+        - name: GigabitEthernet5
+          ip_address: 203.0.113.2/30
+          description: Internet simulation link to inet-host
+          nat_role: outside
+
+      # SNMP
+      snmp:
+        community: netauto
+        version: 2c
+        trap_source: Loopback0
 
 rtr-02:
   hostname: 172.20.20.12
@@ -135,6 +171,42 @@ rtr-02:
           src: 10.99.99.0
           src_wildcard: 0.0.0.255
           dst: any
+      # Interfaces
+      interfaces:
+        - name: Loopback0
+          ip_address: 2.2.2.2/32
+          description: Router-ID / BGP update-source
+
+        - name: GigabitEthernet2
+          ip_address: 10.0.0.2/30
+          description: eBGP peering link to rtr-01
+          ospf_area: "0"
+          ospf_process: "1"
+
+        - name: GigabitEthernet3
+          ip_address: 10.2.0.1/30
+          description: L3 OSPF link to core-sw-01
+          nat_role: inside
+          ospf_area: "0"
+          ospf_process: "1"
+
+        - name: GigabitEthernet4
+          ip_address: 10.2.0.5/30
+          description: L3 OSPF link to core-sw-02
+          nat_role: inside
+          ospf_area: "0"
+          ospf_process: "1"
+
+        - name: GigabitEthernet5
+          ip_address: 203.0.113.6/30
+          description: Internet simulation link to inet-host
+          nat_role: outside
+
+      # SNMP
+      snmp:
+        community: netauto
+        version: 2c
+        trap_source: Loopback0
 
 # ── Core Switches (Arista cEOS — MLAG pair) ───────────────────────────────────
 
@@ -197,6 +269,9 @@ core-sw-01:
 
       # L3 routed interfaces (toward routers)
       routed_interfaces:
+        - name: Loopback0
+          description: Router-ID / OSPF source
+          ip_address: 3.3.3.3/32
         - name: Ethernet1
           description: L3 to rtr-01 Gi3
           ip_address: 10.1.0.2/30
@@ -255,6 +330,12 @@ core-sw-01:
         - interface: Ethernet7
           vlan: 20
           description: svc-01
+
+      # SNMP
+      snmp:
+        community: netauto
+        version: 2c
+        trap_source: Loopback0
 
 core-sw-02:
   hostname: 172.20.20.16
@@ -315,6 +396,9 @@ core-sw-02:
 
       # L3 routed interfaces (toward routers)
       routed_interfaces:
+        - name: Loopback0
+          description: Router-ID / OSPF source
+          ip_address: 4.4.4.4/32
         - name: Ethernet1
           description: L3 to rtr-01 Gi4
           ip_address: 10.1.0.6/30
@@ -368,6 +452,12 @@ core-sw-02:
             - Ethernet6
           trunk_vlans: "10,20,99"
 
+      # SNMP
+      snmp:
+        community: netauto
+        version: 2c
+        trap_source: Loopback0
+
 # ── Access Switches (Arista cEOS — L2 only) ───────────────────────────────────
 
 arista-01:
@@ -409,6 +499,12 @@ arista-01:
           vlan: 10
           description: host-03
 
+      # SNMP
+      snmp:
+        community: netauto
+        version: 2c
+        trap_source: Loopback0
+
 arista-02:
   hostname: 172.20.20.14
   groups:
@@ -447,3 +543,9 @@ arista-02:
         - interface: Ethernet4
           vlan: 20
           description: host-04
+
+      # SNMP
+      snmp:
+        community: netauto
+        version: 2c
+        trap_source: Loopback0

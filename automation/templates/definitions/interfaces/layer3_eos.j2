@@ -1,0 +1,41 @@
+{#
+  automation/templates/definitions/interfaces/layer3_eos.j2
+
+  Arista EOS — Layer 3 interface configuration.
+  Covers routed interfaces (Loopback, Ethernet) and SVIs (VlanX).
+
+  Context variable:
+    interfaces (list): unified list built by deploy_interfaces_workflow.py
+                       from custom_fields.routed_interfaces + custom_fields.svis
+
+  Each item has a type field:
+    type=routed : physical or loopback interface — ip address + optional OSPF
+    type=svi    : interface VlanX — ip address only
+
+  Required per interface:
+    name        (str): interface name, e.g. Ethernet1, Loopback0, Vlan10
+    ip_address  (str): CIDR notation, e.g. 10.1.0.2/30
+    description (str): interface description
+    type        (str): "routed" or "svi"
+
+  Optional per routed interface:
+    ospf_area         (int/str): OSPF area, e.g. 0
+    ospf_network_type (str)    : OSPF network type, e.g. point-to-point
+#}
+{% for iface in interfaces %}
+!
+! -- {{ iface.description | default(iface.name) }}
+interface {{ iface.name }}
+{% if iface.type == 'routed' and not iface.name.startswith('Loopback') %}
+   no switchport
+{% endif %}
+   description {{ iface.description | default("no-description") }}
+   ip address {{ iface.ip_address }}
+{% if iface.ospf_area is defined %}
+   ip ospf area {{ iface.ospf_area }}
+{% endif %}
+{% if iface.ospf_network_type is defined %}
+   ip ospf network {{ iface.ospf_network_type }}
+{% endif %}
+   no shutdown
+{% endfor %}
