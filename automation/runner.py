@@ -15,6 +15,7 @@ def main():
         print("  python automation/runner.py deploy portchannels")
         print("  python automation/runner.py deploy mlag")
         print("  python automation/runner.py deploy vrrp")
+        print("  python automation/runner.py deploy ntp")
         sys.exit(1)
 
     module = sys.argv[1]
@@ -123,6 +124,12 @@ def main():
         from automation.test_connection import nr
         from automation.workflows.switching.vrrp_workflow import run_vrrp_deploy
         result = run_vrrp_deploy(nr)
+        print(result)
+
+    elif module == "deploy" and action == "ntp":
+        from automation.test_connection import nr
+        from automation.workflows.services.ntp_workflow import run_ntp_deploy
+        result = run_ntp_deploy(nr)
         print(result)
 
     else:

@@ -114,6 +114,12 @@ rtr-01:
         version: 2c
         trap_source: Loopback0
 
+      # NTP
+      ntp:
+        server: 10.20.20.100
+        key_id: 1
+        key_type: md5
+
 rtr-02:
   hostname: 172.20.20.12
   groups:
@@ -192,6 +198,7 @@ rtr-02:
           nat_role: inside
           ospf_area: "0"
           ospf_process: "1"
+          ospf_network: point-to-point 
 
         - name: GigabitEthernet4
           ip_address: 10.2.0.5/30
@@ -199,6 +206,7 @@ rtr-02:
           nat_role: inside
           ospf_area: "0"
           ospf_process: "1"
+          ospf_network: point-to-point 
 
         - name: GigabitEthernet5
           ip_address: 203.0.113.6/30
@@ -210,6 +218,12 @@ rtr-02:
         community: netauto
         version: 2c
         trap_source: Loopback0
+
+      # NTP
+      ntp:
+        server: 10.20.20.100
+        key_id: 1
+        key_type: md5
 
 # ── Core Switches (Arista cEOS — MLAG pair) ───────────────────────────────────
 
@@ -344,6 +358,12 @@ core-sw-01:
         version: 2c
         trap_source: Loopback0
 
+      # NTP
+      ntp:
+        server: 10.20.20.100
+        key_id: 1
+        key_type: md5
+
 core-sw-02:
   hostname: 172.20.20.16
   groups:
@@ -469,6 +489,12 @@ core-sw-02:
         version: 2c
         trap_source: Loopback0
 
+      # NTP
+      ntp:
+        server: 10.20.20.100
+        key_id: 1
+        key_type: md5
+
 # ── Access Switches (Arista cEOS — L2 only) ───────────────────────────────────
 
 arista-01:
@@ -516,6 +542,10 @@ arista-01:
         version: 2c
         trap_source: Loopback0
 
+      # NTP
+      ntp:
+        server: 172.20.20.1
+
 arista-02:
   hostname: 172.20.20.14
   groups:
@@ -560,3 +590,7 @@ arista-02:
         community: netauto
         version: 2c
         trap_source: Loopback0
+
+      # NTP
+      ntp:
+        server: 172.20.20.1

@@ -1,0 +1,32 @@
+---
+# ansible/roles/ntp_server/tasks/main.yml
+#
+# Configure ntpd on svc-01 as internal NTP server.
+# Serves 10.0.0.0/8 with MD5 authentication.
+# Key secret loaded from NTP_KEY_SECRET environment variable.
+
+- name: Deploy ntp.keys file
+  template:
+    src: ntp.keys.j2
+    dest: /etc/ntp.keys
+    mode: '0600'
+
+- name: Deploy ntp.conf
+  template:
+    src: ntp.conf.j2
+    dest: /etc/ntp.conf
+    mode: '0644'
+
+- name: Kill existing ntpd if running
+  shell: pkill ntpd || true
+  changed_when: false
+
+- name: Start ntpd
+  shell: ntpd -l -k /etc/ntp.keys
+  changed_when: true
+
+- name: Verify ntpd is running
+  shell: pgrep ntpd
+  register: ntpd_check
+  changed_when: false
+  failed_when: ntpd_check.rc != 0

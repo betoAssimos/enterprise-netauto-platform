@@ -1,0 +1,4 @@
+# /etc/ntp.keys
+# NTP authentication keys
+# Key secret loaded from NTP_KEY_SECRET environment variable
+1 MD5 {{ lookup('env', 'NTP_KEY_SECRET') }}

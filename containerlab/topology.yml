@@ -179,7 +179,7 @@ topology:
       mgmt-ipv4: 172.20.20.20
       exec:
         - ip addr add 10.20.20.100/24 dev eth1
-        - ip route add default via 10.20.20.1 dev eth1
+        - ip route replace default via 10.20.20.1 dev eth1
       labels:
         site: lab-dc01
         role: services-host

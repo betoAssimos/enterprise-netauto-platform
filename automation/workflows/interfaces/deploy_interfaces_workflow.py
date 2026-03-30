@@ -128,12 +128,15 @@ def _eos_context(task: Task) -> list[dict[str, Any]] | None:
         interfaces.append({**iface, "type": "routed"})
 
     for svi in svis:
-        interfaces.append({
+        svi_entry: dict[str, Any] = {
             "name": f"Vlan{svi['vlan']}",
             "type": "svi",
             "ip_address": svi["ip_address"],
             "description": svi.get("description", f"VLAN {svi['vlan']}"),
-        })
+        }
+        if "ospf_area" in svi:
+            svi_entry["ospf_area"] = svi["ospf_area"]
+        interfaces.append(svi_entry)
 
     return interfaces
 

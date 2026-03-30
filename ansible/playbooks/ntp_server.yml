@@ -1,0 +1,24 @@
+---
+# ansible/playbooks/ntp_server.yml
+#
+# Deploy NTP server configuration on svc-01.
+#
+# Prerequisites:
+#   - NTP_KEY_SECRET must be set in environment or .env
+#   - svc-01 container must be running
+#
+# Usage:
+#   cd ansible && ansible-playbook playbooks/ntp_server.yml
+
+- name: Configure NTP server on svc-01
+  hosts: services
+  gather_facts: false
+
+  pre_tasks:
+    - name: Verify NTP_KEY_SECRET is set
+      fail:
+        msg: "NTP_KEY_SECRET environment variable is not set"
+      when: lookup('env', 'NTP_KEY_SECRET') == ''
+
+  roles:
+    - ntp_server

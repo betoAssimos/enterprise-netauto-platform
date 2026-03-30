@@ -1,0 +1,11 @@
+{#
+  automation/templates/definitions/services/ntp_eos.j2
+  Arista EOS — NTP client configuration.
+  Points to internal NTP server. No MD5 auth — BusyBox ntpd
+  does not support authenticated server mode.
+  Required context:
+    ntp_server  (str) : NTP server IP
+#}
+no ntp server 10.20.20.100
+no ntp server 172.20.20.1
+ntp server {{ ntp_server }}
