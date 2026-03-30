@@ -2,13 +2,22 @@
 automation/workflows/nat_workflow.py
 
 NAT overload (PAT) deployment workflow.
-Reads nat_* custom fields from inventory and pushes NAT ACL + overload config.
+
+Deploys NAT ACL and ip nat inside source overload statement
+on Cisco edge routers only.
+
+Note: ip nat inside/outside per-interface is configured in
+deploy_interfaces_workflow.py via interfaces/layer3.j2.
+This workflow only handles the ACL and overload statement.
+
+Arista and access switches skipped — no NAT on those devices.
 """
 from __future__ import annotations
+
 from typing import Any
 
 from nornir.core import Nornir
-from nornir.core.task import Result, Task
+from nornir.core.task import Task
 
 from automation.tasks.deploy_config import deploy_config
 from automation.utils.logger import get_logger
@@ -33,7 +42,6 @@ def nat_context_builder(task: Task) -> dict[str, Any]:
 
     context: dict[str, Any] = {
         "nat_outside_interface": nat_outside,
-        "nat_inside_interface": custom_fields.get("nat_inside_interface"),
         "nat_acl_entries": nat_acl_entries,
     }
 
@@ -58,13 +66,21 @@ def run_nat_deploy(nr: Nornir) -> dict[str, Any]:
         rollback=rollback_config,
     )
 
-    succeeded = [h for h, r in results.items() if not r.failed]
+    succeeded = [
+        h for h, r in results.items()
+        if not r.failed and not getattr(r[0], 'skipped', False)
+    ]
     failed = [h for h, r in results.items() if r.failed]
+    skipped = [
+        h for h, r in results.items()
+        if getattr(r[0], 'skipped', False)
+    ]
 
     summary = {
         "total": len(nr.inventory.hosts),
         "succeeded": succeeded,
         "failed": failed,
+        "skipped": skipped,
     }
 
     log.info(
@@ -72,5 +88,6 @@ def run_nat_deploy(nr: Nornir) -> dict[str, Any]:
         total=summary["total"],
         succeeded=len(succeeded),
         failed=len(failed),
+        skipped=len(skipped),
     )
     return summary

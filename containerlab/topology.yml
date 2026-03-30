@@ -212,7 +212,7 @@ topology:
       mgmt-ipv4: 172.20.20.21
       exec:
         - ip addr add 10.10.10.10/24 dev eth1
-        - ip route add default via 10.10.10.1 dev eth1
+        - ip route replace default via 10.10.10.1 dev eth1
       labels:
         site: lab-dc01
         role: end-host
@@ -225,7 +225,7 @@ topology:
       mgmt-ipv4: 172.20.20.22
       exec:
         - ip addr add 10.20.20.10/24 dev eth1
-        - ip route add default via 10.20.20.1 dev eth1
+        - ip route replace default via 10.20.20.1 dev eth1
       labels:
         site: lab-dc01
         role: end-host
@@ -238,7 +238,7 @@ topology:
       mgmt-ipv4: 172.20.20.23
       exec:
         - ip addr add 10.10.10.20/24 dev eth1
-        - ip route add default via 10.10.10.1 dev eth1
+        - ip route replace default via 10.10.10.1 dev eth1
       labels:
         site: lab-dc01
         role: end-host
@@ -251,7 +251,7 @@ topology:
       mgmt-ipv4: 172.20.20.24
       exec:
         - ip addr add 10.20.20.20/24 dev eth1
-        - ip route add default via 10.20.20.1 dev eth1
+        - ip route replace default via 10.20.20.1 dev eth1
       labels:
         site: lab-dc01
         role: end-host
