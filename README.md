@@ -48,14 +48,14 @@ enterprise network infrastructure using modern automation tools and practices.
 | 7 | Rollback | ✅ Complete | Automatic on post-check failure |
 | 8 | Telemetry stack | ✅ Complete | Prometheus + Grafana + SNMP + gNMI |
 | 9 | GitLab CI/CD | 🔄 Rebuilding | Pipeline being updated for new topology |
-| 10 | NTP | 🔜 Next | svc-01 as internal NTP server, MD5 auth |
+| 10 | NTP | ✅ Complete | All 6 devices synced. Routers/core via svc-01 (10.20.20.100), access switches via WSL host (172.20.20.1). No MD5 auth — BusyBox ntpd limitation |
 | 10 | BGP routing policy | 🔜 Next | Prefix lists, route maps |
 | 10 | SSH hardening | 🔜 Next | All devices |
 | 10 | DHCP / Syslog | 🔜 Next | svc-01 as services host |
 | 11 | NAPALM transport | 📋 Planned | Multi-vendor abstraction layer |
 | 12 | AI layer | 📋 Planned | FastMCP + LangChain + Ollama |
 | 12 | netclaw | 📋 Planned | Parallel AI network agent implementation |
-| 13 | Ansible integration | 📋 Planned | System-level and cross-platform tasks |
+| 13 | Ansible integration | ✅ Complete | svc-01 NTP server role deployed |
 | 13 | Terraform integration | 📋 Planned | Infrastructure provisioning |
 | 14 | pyATS learn/diff | 📋 Planned | Full feature snapshot pipeline integration |
 | 15 | Batfish | 🔮 Future | Pre-deployment config verification |
@@ -233,6 +233,10 @@ cd ~/enterprise-netauto-platform/netbox-docker && docker compose up -d
 # 2. Start telemetry
 cd ~/enterprise-netauto-platform/telemetry && docker compose up -d
 
+# Prerequisites — WSL host services (persistent across WSL restarts)
+# chrony must be running to serve NTP to the lab network
+# sudo systemctl start chrony   ← only needed if chrony is not running
+
 # 3. Deploy topology (wait ~5 min for IOS XE to boot)
 cd ~/enterprise-netauto-platform/containerlab && sudo containerlab deploy -t topology.yml
 
@@ -247,6 +251,7 @@ python automation/runner.py deploy vlans
 python automation/runner.py deploy portchannels
 python automation/runner.py deploy mlag
 python automation/runner.py deploy vrrp
+python automation/runner.py deploy ntp
 ```
 
 ---
@@ -349,4 +354,5 @@ python automation/runner.py deploy vlans
 python automation/runner.py deploy portchannels
 python automation/runner.py deploy mlag
 python automation/runner.py deploy vrrp
+python automation/runner.py deploy ntp
 ```
