@@ -92,6 +92,7 @@ rtr-01:
           nat_role: inside
           ospf_area: "0"
           ospf_process: "1"
+          ospf_network: point-to-point
 
         - name: GigabitEthernet4
           ip_address: 10.1.0.5/30
@@ -99,6 +100,8 @@ rtr-01:
           nat_role: inside
           ospf_area: "0"
           ospf_process: "1"
+          ospf_network: point-to-point
+
 
         - name: GigabitEthernet5
           ip_address: 203.0.113.2/30
@@ -272,6 +275,7 @@ core-sw-01:
         - name: Loopback0
           description: Router-ID / OSPF source
           ip_address: 3.3.3.3/32
+          ospf_area: 0
         - name: Ethernet1
           description: L3 to rtr-01 Gi3
           ip_address: 10.1.0.2/30
@@ -288,12 +292,15 @@ core-sw-01:
         - vlan: 10
           ip_address: 10.10.10.2/24
           description: VLAN 10 users gateway
+          ospf_area: 0
         - vlan: 20
           ip_address: 10.20.20.2/24
           description: VLAN 20 servers gateway
+          ospf_area: 0
         - vlan: 99
           ip_address: 10.99.99.2/24
           description: VLAN 99 management gateway
+          ospf_area: 0
 
       # VRRP (primary — higher priority wins)
       vrrp_groups:
@@ -399,6 +406,7 @@ core-sw-02:
         - name: Loopback0
           description: Router-ID / OSPF source
           ip_address: 4.4.4.4/32
+          ospf_area: 0
         - name: Ethernet1
           description: L3 to rtr-01 Gi4
           ip_address: 10.1.0.6/30
@@ -415,12 +423,15 @@ core-sw-02:
         - vlan: 10
           ip_address: 10.10.10.3/24
           description: VLAN 10 users gateway
+          ospf_area: 0
         - vlan: 20
           ip_address: 10.20.20.3/24
           description: VLAN 20 servers gateway
+          ospf_area: 0
         - vlan: 99
           ip_address: 10.99.99.3/24
           description: VLAN 99 management gateway
+          ospf_area: 0
 
       # VRRP (secondary — lower priority)
       vrrp_groups:

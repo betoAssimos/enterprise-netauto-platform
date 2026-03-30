@@ -4,13 +4,18 @@
   Arista EOS — Layer 3 interface configuration.
   Covers routed interfaces (Loopback, Ethernet) and SVIs (VlanX).
 
+  Note: "ip routing" is enabled here as a prerequisite for L3 forwarding
+  and OSPF adjacency formation. In a production environment this would
+  live in a dedicated base system config workflow. It is idempotent —
+  safe to re-apply on devices where routing is already enabled.
+
   Context variable:
     interfaces (list): unified list built by deploy_interfaces_workflow.py
                        from custom_fields.routed_interfaces + custom_fields.svis
 
   Each item has a type field:
     type=routed : physical or loopback interface — ip address + optional OSPF
-    type=svi    : interface VlanX — ip address only
+    type=svi    : interface VlanX — ip address + optional OSPF
 
   Required per interface:
     name        (str): interface name, e.g. Ethernet1, Loopback0, Vlan10
@@ -22,6 +27,9 @@
     ospf_area         (int/str): OSPF area, e.g. 0
     ospf_network_type (str)    : OSPF network type, e.g. point-to-point
 #}
+!
+! -- Enable IP routing (required for L3 forwarding and OSPF)
+ip routing
 {% for iface in interfaces %}
 !
 ! -- {{ iface.description | default(iface.name) }}
