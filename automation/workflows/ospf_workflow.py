@@ -125,7 +125,10 @@ def run_ospf_deploy(nr: Nornir) -> dict[str, Any]:
             post_check=post_check,
             rollback=rollback_config,
         )
-        succeeded += [h for h, r in cisco_results.items() if not r.failed]
+        succeeded += [
+            h for h, r in cisco_results.items()
+            if not r.failed and not getattr(r[0], 'skipped', False)
+        ]
         failed += [h for h, r in cisco_results.items() if r.failed]
 
     # Run 2 — Arista core switches
@@ -145,7 +148,10 @@ def run_ospf_deploy(nr: Nornir) -> dict[str, Any]:
             post_check=post_check,
             rollback=rollback_config,
         )
-        succeeded += [h for h, r in core_results.items() if not r.failed]
+        succeeded += [
+            h for h, r in core_results.items()
+            if not r.failed and not getattr(r[0], 'skipped', False)
+        ]
         failed += [h for h, r in core_results.items() if r.failed]
 
     skipped = [
