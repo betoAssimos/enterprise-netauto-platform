@@ -13,6 +13,8 @@ Design:
 - Platform slug is mapped to Scrapli driver name
 - Primary IP is preferred as hostname; device name is the fallback
 - Groups are auto-created per site and per role
+
+Not in use - for test purposes only.
 """
 
 from __future__ import annotations

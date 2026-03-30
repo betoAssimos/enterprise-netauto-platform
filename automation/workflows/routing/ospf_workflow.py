@@ -30,8 +30,8 @@ from automation.rollback.rollback import rollback_config
 
 log = get_logger(__name__)
 
-CISCO_OSPF_TEMPLATE = "ospf/process.j2"
-EOS_OSPF_TEMPLATE = "ospf/process_eos.j2"
+CISCO_OSPF_TEMPLATE = "routing/ospf/process.j2"
+EOS_OSPF_TEMPLATE = "routing/ospf/process_eos.j2"
 
 
 def _cisco_ospf_context(task: Task) -> dict[str, Any]:

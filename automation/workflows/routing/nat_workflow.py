@@ -26,7 +26,7 @@ from automation.rollback.rollback import rollback_config
 
 log = get_logger(__name__)
 
-NAT_TEMPLATE = "nat/nat_overload.j2"
+NAT_TEMPLATE = "routing/nat/nat_overload.j2"
 
 
 def nat_context_builder(task: Task) -> dict[str, Any]:

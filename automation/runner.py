@@ -69,31 +69,31 @@ def main():
 
     elif module == "deploy" and action == "interfaces":
         from automation.test_connection import nr
-        from automation.workflows.deploy_interfaces_workflow import run_interfaces_deploy
+        from automation.workflows.interfaces.deploy_interfaces_workflow import run_interfaces_deploy
         result = run_interfaces_deploy(nr)
         print(result)
 
     elif module == "deploy" and action == "bgp":
         from automation.test_connection import nr
-        from automation.workflows.bgp_workflow import run_bgp_deploy
+        from automation.workflows.routing.bgp_workflow import run_bgp_deploy
         result = run_bgp_deploy(nr)
         print(result)
 
     elif module == "deploy" and action == "ospf":
         from automation.test_connection import nr
-        from automation.workflows.ospf_workflow import run_ospf_deploy
+        from automation.workflows.routing.ospf_workflow import run_ospf_deploy
         result = run_ospf_deploy(nr)
         print(result)
 
     elif module == "deploy" and action == "nat":
         from automation.test_connection import nr
-        from automation.workflows.nat_workflow import run_nat_deploy
+        from automation.workflows.routing.nat_workflow import run_nat_deploy
         result = run_nat_deploy(nr)
         print(result)
 
     elif module == "drift" and action == "bgp":
         from automation.test_connection import nr
-        from automation.workflows.bgp_workflow import run_bgp_drift_check
+        from automation.workflows.routing.bgp_workflow import run_bgp_drift_check
         result = run_bgp_drift_check(nr)
         print(result)
 

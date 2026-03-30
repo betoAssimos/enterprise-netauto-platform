@@ -18,7 +18,7 @@ from automation.rollback.rollback import rollback_config
 
 log = get_logger(__name__)
 
-BGP_TEMPLATE = "bgp/neighbors.j2"
+BGP_TEMPLATE = "routing/bgp/neighbors.j2"
 
 
 def bgp_context_builder(task: Task) -> dict[str, Any]:
