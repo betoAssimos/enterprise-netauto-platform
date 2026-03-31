@@ -2,13 +2,11 @@
   automation/templates/definitions/services/ntp_cisco.j2
 
   Cisco IOS XE — NTP client configuration.
-  Authenticates to internal NTP server with MD5.
-  Key secret read from NTP_KEY_SECRET environment variable at runtime.
+  Negates previous server entries before applying for idempotency.
 
   Required context:
     ntp_server  (str) : NTP server IP
-    key_id      (int) : NTP authentication key ID
-    key_secret  (str) : MD5 key secret (from environment, never from hosts.yaml)
-    key_type    (str) : Authentication type (md5)
 #}
+no ntp server 10.20.20.100
+no ntp server 172.20.20.1
 ntp server {{ ntp_server }}

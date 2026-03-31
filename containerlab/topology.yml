@@ -170,7 +170,7 @@ topology:
         managed: "true"
 
     # ── Services Host (Linux) ──────────────────────────────────────────────
-    # Internal services: NTP (MD5 auth), syslog, DNS, DHCP
+     # Internal services: NTP, syslog
     # Connected to core-sw-01 Eth7, VLAN 20 (servers)
 
     svc-01:
@@ -180,6 +180,8 @@ topology:
       exec:
         - ip addr add 10.20.20.100/24 dev eth1
         - ip route replace default via 10.20.20.1 dev eth1
+        - ntpd -l -p 172.20.20.1
+        - socat -u UDP-LISTEN:514,fork OPEN:/var/log/syslog_remote.log,creat,append &
       labels:
         site: lab-dc01
         role: services-host

@@ -38,6 +38,7 @@ enterprise network infrastructure using modern automation tools and practices.
 | 4 | Interface deployment | ✅ Complete | Multi-platform: IOS XE + EOS (L3 + SVIs) |
 | 4 | OSPF deployment | ✅ Complete | Area 0 — edge routers + core switches |
 | 4 | BGP deployment | ✅ Complete | eBGP AS65001 ↔ AS65002 |
+| 4 | BGP routing policy | ✅ Complete | Prefix lists + route maps on edge routers |
 | 4 | NAT deployment | ✅ Complete | PAT overload on edge WAN interfaces |
 | 4 | VLAN deployment | ✅ Complete | VLANs 10/20/99/4094 on all Arista switches |
 | 4 | Port-channel deployment | ✅ Complete | MLAG peer-link + member + access uplinks |
@@ -49,13 +50,12 @@ enterprise network infrastructure using modern automation tools and practices.
 | 8 | Telemetry stack | ✅ Complete | Prometheus + Grafana + SNMP + gNMI |
 | 9 | GitLab CI/CD | 🔄 Rebuilding | Pipeline being updated for new topology |
 | 10 | NTP | ✅ Complete | All 6 devices synced. Routers/core via svc-01 (10.20.20.100), access switches via WSL host (172.20.20.1). No MD5 auth — BusyBox ntpd limitation |
-| 10 | BGP routing policy | 🔜 Next | Prefix lists, route maps |
-| 10 | SSH hardening | 🔜 Next | All devices |
-| 10 | DHCP / Syslog | 🔜 Next | svc-01 as services host |
+| 10 | Syslog | ✅ Complete | Routers + core switches → svc-01 (socat UDP 514) |
+| 10 | SSH hardening | ✅ Complete | SSHv2 enforced, telnet disabled on edge routers |
 | 11 | NAPALM transport | 📋 Planned | Multi-vendor abstraction layer |
 | 12 | AI layer | 📋 Planned | FastMCP + LangChain + Ollama |
 | 12 | netclaw | 📋 Planned | Parallel AI network agent implementation |
-| 13 | Ansible integration | ✅ Complete | svc-01 NTP server role deployed |
+| 13 | Ansible integration | ✅ Complete | svc-01 NTP server + syslog receiver roles |
 | 13 | Terraform integration | 📋 Planned | Infrastructure provisioning |
 | 14 | pyATS learn/diff | 📋 Planned | Full feature snapshot pipeline integration |
 | 15 | Batfish | 🔮 Future | Pre-deployment config verification |
@@ -111,7 +111,7 @@ svc-01 ── core-sw-01 Eth7 (VLAN 20)
 | core-sw-02 | ceos:4.35.1F | Core switch | MLAG secondary |
 | arista-01 | ceos:4.35.1F | Access switch | — |
 | arista-02 | ceos:4.35.1F | Access switch | — |
-| svc-01 | netshoot | Services host | NTP, syslog, DNS, DHCP |
+| svc-01 | netshoot | Services host | NTP, syslog |
 | inet-host | netshoot | Internet simulation | — |
 | host-01..04 | netshoot | End hosts | VLAN 10/20 |
 
@@ -163,21 +163,30 @@ enterprise-netauto-platform/
 │   │   └── netbox_seed.py          # Seed NetBox from inventory
 │   ├── templates/definitions/
 │   │   ├── interfaces/             # Layer 3 interfaces (Cisco + EOS)
-│   │   ├── routing/                # BGP, OSPF, NAT templates
+│   │   ├── routing/                # BGP (neighbors + policy), OSPF, NAT
 │   │   ├── switching/              # VLANs, port-channels, MLAG, VRRP
-│   │   ├── services/               # NTP, syslog (planned)
-│   │   └── security/               # SSH hardening (planned)
+│   │   ├── services/               # NTP, syslog (Cisco + EOS)
+│   │   └── security/               # SSH hardening (Cisco)
 │   ├── workflows/
 │   │   ├── interfaces/             # Multi-platform interface deploy
-│   │   ├── routing/                # BGP, OSPF, NAT workflows
+│   │   ├── routing/                # BGP, BGP policy, OSPF, NAT workflows
 │   │   ├── switching/              # VLANs, port-channels, MLAG, VRRP workflows
-│   │   ├── services/               # NTP, syslog workflows (planned)
-│   │   └── security/               # Hardening workflows (planned)
+│   │   ├── services/               # NTP, syslog workflows
+│   │   └── security/               # SSH hardening workflow
 │   ├── tasks/                      # Core Nornir task functions
 │   ├── validators/                 # Pre/post check state validation
 │   ├── drift/                      # DeepDiff drift detection
 │   ├── rollback/                   # Config rollback on failure
 │   └── utils/                      # Structured logging
+├── ansible/
+│   ├── ansible.cfg
+│   ├── inventory/hosts.ini
+│   ├── playbooks/
+│   │   ├── ntp_server.yml          # NTP server on svc-01
+│   │   └── syslog_server.yml       # Syslog receiver on svc-01
+│   └── roles/
+│       ├── ntp_server/             # BusyBox ntpd config
+│       └── syslog_server/          # socat UDP 514 listener
 ├── tests/
 │   ├── testbed.yaml                # pyATS device definitions
 │   ├── precheck/                   # Baseline state tests
@@ -211,10 +220,14 @@ python automation/runner.py deploy interfaces
 python automation/runner.py deploy ospf
 python automation/runner.py deploy nat
 python automation/runner.py deploy bgp
+python automation/runner.py deploy bgp-policy
 python automation/runner.py deploy vlans
 python automation/runner.py deploy portchannels
 python automation/runner.py deploy mlag
 python automation/runner.py deploy vrrp
+python automation/runner.py deploy ntp
+python automation/runner.py deploy syslog
+python automation/runner.py deploy ssh
 
 # Drift detection
 python automation/runner.py drift bgp
@@ -226,6 +239,9 @@ python automation/runner.py drift bgp
 
 Cisco c8000v does not persist config across Containerlab restarts.
 Arista cEOS does. Run the full sequence after every restart.
+
+svc-01 services (ntpd, socat syslog) are bootstrapped automatically via
+Containerlab exec block. Ansible roles can be re-run for full configuration.
 ```bash
 # 1. Start NetBox
 cd ~/enterprise-netauto-platform/netbox-docker && docker compose up -d
@@ -240,18 +256,26 @@ cd ~/enterprise-netauto-platform/telemetry && docker compose up -d
 # 3. Deploy topology (wait ~5 min for IOS XE to boot)
 cd ~/enterprise-netauto-platform/containerlab && sudo containerlab deploy -t topology.yml
 
-# 4. Activate venv and deploy
+# 4. Activate venv, source env, deploy
 cd ~/enterprise-netauto-platform && source venv/bin/activate
+set -a && source .env && set +a
 python automation/runner.py connect test
 python automation/runner.py deploy interfaces
 python automation/runner.py deploy ospf
 python automation/runner.py deploy nat
 python automation/runner.py deploy bgp
+python automation/runner.py deploy bgp-policy
 python automation/runner.py deploy vlans
 python automation/runner.py deploy portchannels
 python automation/runner.py deploy mlag
 python automation/runner.py deploy vrrp
 python automation/runner.py deploy ntp
+python automation/runner.py deploy syslog
+python automation/runner.py deploy ssh
+
+# 5. Configure svc-01 services (Ansible — optional, exec block handles bootstrap)
+cd ansible && ansible-playbook playbooks/ntp_server.yml
+cd ansible && ansible-playbook playbooks/syslog_server.yml
 ```
 
 ---
@@ -296,7 +320,7 @@ the previous v1 design.
 | NetBox | Source of truth — DCIM + IPAM, API-driven, industry standard |
 | Prometheus + Grafana | Telemetry — time-series metrics, visual dashboards |
 | gnmic | gNMI collector — streaming telemetry from Arista switches |
-| Ansible | Planned — system-level tasks, Linux host configuration |
+| Ansible | System-level tasks — Linux host configuration (NTP server, syslog receiver) |
 | Terraform | Planned — infrastructure provisioning |
 
 ### Nornir vs Ansible vs Terraform
@@ -345,14 +369,18 @@ cd containerlab && sudo containerlab deploy -t topology.yml
 
 # Wait ~5 minutes for IOS XE to boot, then:
 cd .. && source venv/bin/activate
+set -a && source .env && set +a
 python automation/runner.py connect test
 python automation/runner.py deploy interfaces
 python automation/runner.py deploy ospf
 python automation/runner.py deploy nat
 python automation/runner.py deploy bgp
+python automation/runner.py deploy bgp-policy
 python automation/runner.py deploy vlans
 python automation/runner.py deploy portchannels
 python automation/runner.py deploy mlag
 python automation/runner.py deploy vrrp
 python automation/runner.py deploy ntp
+python automation/runner.py deploy syslog
+python automation/runner.py deploy ssh
 ```
