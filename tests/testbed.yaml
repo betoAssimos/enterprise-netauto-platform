@@ -4,7 +4,7 @@
 #
 # Credentials are read from environment variables — never hardcode secrets.
 # Set DEVICE_USERNAME and DEVICE_PASSWORD in your .env file (not committed).
-#
+# Remember access to Docker socket
 # Device IPs match the Containerlab management network (172.20.20.0/24).
 
 testbed:
