@@ -35,9 +35,23 @@ rtr-01:
           ip: 10.0.0.2
           remote_as: 65002
           next_hop_self: true
+          route_map_out: EBGP-OUT
       bgp_networks:
         - prefix: 1.1.1.1
           mask: 255.255.255.255
+      bgp_prefix_lists:
+        - name: PERMIT-LOOPBACK
+          entries:
+            - seq: 10
+              action: permit
+              prefix: 1.1.1.1/32
+
+      bgp_route_maps:
+        - name: EBGP-OUT
+          entries:
+            - seq: 10
+              action: permit
+              match_prefix_list: PERMIT-LOOPBACK
 
       # OSPF — area 0, toward both core switches and loopback
       ospf_process: 1
@@ -141,9 +155,23 @@ rtr-02:
           ip: 10.0.0.1
           remote_as: 65001
           next_hop_self: true
+          route_map_out: EBGP-OUT
       bgp_networks:
         - prefix: 2.2.2.2
           mask: 255.255.255.255
+      bgp_prefix_lists:
+        - name: PERMIT-LOOPBACK
+          entries:
+            - seq: 10
+              action: permit
+              prefix: 2.2.2.2/32
+
+      bgp_route_maps:
+        - name: EBGP-OUT
+          entries:
+            - seq: 10
+              action: permit
+              match_prefix_list: PERMIT-LOOPBACK
 
       # OSPF — area 0, toward both core switches and loopback
       ospf_process: 1

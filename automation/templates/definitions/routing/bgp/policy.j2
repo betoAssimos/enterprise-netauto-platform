@@ -1,0 +1,30 @@
+{#
+  automation/templates/definitions/routing/bgp/policy.j2
+  Renders BGP routing policy for Cisco IOS-XE (c8000v).
+
+  Required context variables:
+    prefix_lists  (list) : List of prefix-list dicts, each containing:
+        name          (str)  : Prefix-list name
+        entries       (list) : List of entry dicts:
+            seq       (int)  : Sequence number
+            action    (str)  : permit or deny
+            prefix    (str)  : Prefix in CIDR notation (e.g. 1.1.1.1/32)
+    route_maps    (list) : List of route-map dicts, each containing:
+        name          (str)  : Route-map name
+        entries       (list) : List of entry dicts:
+            seq       (int)  : Sequence number
+            action    (str)  : permit or deny
+            match_prefix_list (str) : Name of prefix-list to match
+#}
+{% for pl in prefix_lists %}
+{% for entry in pl.entries %}
+ip prefix-list {{ pl.name }} seq {{ entry.seq }} {{ entry.action }} {{ entry.prefix }}
+{% endfor %}
+{% endfor %}
+!
+{% for rm in route_maps %}
+{% for entry in rm.entries %}
+route-map {{ rm.name }} {{ entry.action }} {{ entry.seq }}
+ match ip address prefix-list {{ entry.match_prefix_list }}
+{% endfor %}
+{% endfor %}
