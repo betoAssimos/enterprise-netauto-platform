@@ -4,10 +4,10 @@
 #
 # Pipeline stages implement the full network change lifecycle:
 #
-#   build          → validate environment, install deps, generate inventory
+#   build          → validate environment, deps, device reachability, inventory
 #   prevalidation  → pyATS baseline capture (what the network looks like NOW)
-#   deploy         → push interface + BGP config via Nornir/Scrapli
-#   postvalidation → pyATS regression check (did anything break?)
+#   deploy         → push all config via Nornir/Scrapli (manual gate)
+#   postvalidation → pyATS regression check + end-to-end connectivity
 #
 # Runner: wsl-lab-runner (shell executor, tags: wsl, lab)
 # The runner has direct L3 access to the Containerlab network (172.20.20.0/24)
@@ -23,6 +23,18 @@
 #   1.x  Python automation  — Nornir, Scrapli, Jinja2 template rendering
 #   2.x  IaC / CI/CD        — GitLab pipeline, SoT-driven inventory, secrets mgmt
 #   3.x  Operations         — pyATS pre/post validation, regression detection
+#
+# Key design notes for future work:
+#   - Inventory is currently static (hosts.yaml committed to repo).
+#     Phase 2: replace with dynamic generation from NetBox via netbox_inventory.py.
+#     This will add a build step that queries NetBox API and produces hosts.yaml
+#     as a pipeline artifact, making NetBox the true SoT (exam topic 2.6).
+#   - Deploy stage uses a single job with all workflows in sequence.
+#     Future: split into per-domain jobs (routing, switching, services, security)
+#     for better GitLab UI visibility and selective reruns.
+#   - Pre/post validation currently covers BGP only.
+#     Future: add OSPF neighbor checks, interface state validation,
+#     VRRP state checks, and syslog delivery verification.
 # ============================================================================
 
 variables:
@@ -47,7 +59,7 @@ stages:
 
 # ============================================================================
 # STAGE 1 -- BUILD
-# Validate environment health and regenerate the Nornir inventory from NetBox.
+# Validate environment health and inventory.
 # Failing here aborts the pipeline before touching any device.
 # ============================================================================
 
@@ -64,30 +76,28 @@ build:validate-environment:
     - ping -c1 -W2 172.20.20.12 > /dev/null && echo "rtr-02 reachable"
     - ping -c1 -W2 172.20.20.13 > /dev/null && echo "arista-01 reachable"
     - ping -c1 -W2 172.20.20.14 > /dev/null && echo "arista-02 reachable"
+    - ping -c1 -W2 172.20.20.15 > /dev/null && echo "core-sw-01 reachable"
+    - ping -c1 -W2 172.20.20.16 > /dev/null && echo "core-sw-02 reachable"
 
-build:generate-inventory:
+build:validate-inventory:
   stage: build
   needs: [build:validate-environment]
   script:
-    - echo "==> Regenerating Nornir inventory from NetBox"
-    - $VENV_PYTHON automation/inventory/netbox_inventory.py
-    - echo "==> Verifying inventory content"
+    - echo "==> Validating static inventory"
     - $VENV_PYTHON automation/runner.py validate inventory
-  artifacts:
-    paths:
-      - automation/inventory/hosts.yaml
-    expire_in: 1 hour
+    - echo "==> Verifying SSH connectivity to all managed devices"
+    - $VENV_PYTHON automation/runner.py connect test
 
 # ============================================================================
 # STAGE 2 -- PREVALIDATION
 # Capture the current network state before making any changes.
 # allow_failure: true handles the first-deploy scenario where BGP does not
-# exist yet -- pipeline continues to deploy rather than aborting.
+# exist yet — pipeline continues to deploy rather than aborting.
 # ============================================================================
 
 prevalidation:bgp-baseline:
   stage: prevalidation
-  needs: [build:generate-inventory]
+  needs: [build:validate-inventory]
   script:
     - echo "==> Running pyATS BGP pre-check"
     - $VENV_PYATS run job tests/precheck/test_bgp.py --testbed tests/testbed.yaml 2>&1 | tee precheck.log
@@ -101,39 +111,71 @@ prevalidation:bgp-baseline:
 
 # ============================================================================
 # STAGE 3 -- DEPLOY
-# Push interface addressing, SNMP, and BGP configuration to all devices.
-# Both workflows are idempotent -- re-running produces no unintended changes.
-# deploy:bgp depends on deploy:interfaces completing first (sequential).
+# Push all configuration to devices in dependency order.
+# Manual gate — requires clicking "play" in GitLab UI before execution.
+# All workflows are idempotent — re-running produces no unintended changes.
 # ============================================================================
 
-deploy:interfaces:
+deploy:full-stack:
   stage: deploy
   needs: [prevalidation:bgp-baseline]
+  when: manual
   script:
-    - echo "==> Deploying Layer 3 interfaces and SNMP"
-    - $VENV_PYTHON automation/workflows/deploy_interfaces_workflow.py
-
-deploy:bgp:
-  stage: deploy
-  needs: [deploy:interfaces]
-  script:
-    - echo "==> Deploying BGP configuration"
+    - echo "==> Deploying full configuration stack"
+    - echo "--- Layer 3 interfaces ---"
+    - $VENV_PYTHON automation/runner.py deploy interfaces
+    - echo "--- OSPF ---"
+    - $VENV_PYTHON automation/runner.py deploy ospf
+    - echo "--- NAT ---"
+    - $VENV_PYTHON automation/runner.py deploy nat
+    - echo "--- BGP ---"
     - $VENV_PYTHON automation/runner.py deploy bgp
+    - echo "--- BGP routing policy ---"
+    - $VENV_PYTHON automation/runner.py deploy bgp-policy
+    - echo "--- VLANs ---"
+    - $VENV_PYTHON automation/runner.py deploy vlans
+    - echo "--- Port-channels ---"
+    - $VENV_PYTHON automation/runner.py deploy portchannels
+    - echo "--- MLAG ---"
+    - $VENV_PYTHON automation/runner.py deploy mlag
+    - echo "--- VRRP ---"
+    - $VENV_PYTHON automation/runner.py deploy vrrp
+    - echo "--- NTP ---"
+    - $VENV_PYTHON automation/runner.py deploy ntp
+    - echo "--- Syslog ---"
+    - $VENV_PYTHON automation/runner.py deploy syslog
+    - echo "--- SSH hardening ---"
+    - $VENV_PYTHON automation/runner.py deploy ssh
+    - echo "==> Full stack deployment complete"
 
 # ============================================================================
 # STAGE 4 -- POSTVALIDATION
-# Hard gate -- pipeline fails if BGP sessions are not established after deploy.
+# Hard gate — pipeline fails if BGP sessions are not established after deploy.
+# Also verifies end-to-end data plane connectivity across VLANs.
 # ============================================================================
 
 postvalidation:bgp-verify:
   stage: postvalidation
-  needs: [deploy:bgp]
+  needs: [deploy:full-stack]
   script:
     - echo "==> Running pyATS BGP post-check"
     - $VENV_PYATS run job tests/postcheck/test_bgp.py --testbed tests/testbed.yaml 2>&1 | tee postcheck.log
-    - grep -E "Result\s*:\s*PASSED" postcheck.log || (echo "POST-CHECK FAILED -- BGP regression detected" && exit 1)
+    - grep -E "Result\s*:\s*PASSED" postcheck.log || (echo "POST-CHECK FAILED — BGP regression detected" && exit 1)
   artifacts:
     paths:
       - postcheck.log
     expire_in: 30 days
     when: always
+
+postvalidation:connectivity:
+  stage: postvalidation
+  needs: [deploy:full-stack]
+  script:
+    - echo "==> Verifying end-to-end connectivity across VLANs"
+    - echo "--- VLAN 10 to VLAN 20 ---"
+    - docker exec clab-enterprise-netauto-lab-host-01 ping -c 3 -W 2 10.20.20.10 || (echo "FAILED — host-01 cannot reach host-02" && exit 1)
+    - echo "--- VLAN 20 to VLAN 10 ---"
+    - docker exec clab-enterprise-netauto-lab-host-02 ping -c 3 -W 2 10.10.10.10 || (echo "FAILED — host-02 cannot reach host-01" && exit 1)
+    - echo "--- VLAN 10 to svc-01 ---"
+    - docker exec clab-enterprise-netauto-lab-host-01 ping -c 3 -W 2 10.20.20.100 || (echo "FAILED — host-01 cannot reach svc-01" && exit 1)
+    - echo "==> All connectivity checks passed"

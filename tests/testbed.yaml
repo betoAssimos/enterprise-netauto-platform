@@ -59,3 +59,27 @@ devices:
       cli:
         protocol: ssh
         ip: 172.20.20.14
+
+  core-sw-01:
+    os: eos
+    type: switch
+    credentials:
+      default:
+        username: "%ENV{DEVICE_USERNAME}"
+        password: "%ENV{DEVICE_PASSWORD}"
+    connections:
+      cli:
+        protocol: ssh
+        ip: 172.20.20.15
+        
+  core-sw-02:
+    os: eos
+    type: switch
+    credentials:
+      default:
+        username: "%ENV{DEVICE_USERNAME}"
+        password: "%ENV{DEVICE_PASSWORD}"
+    connections:
+      cli:
+        protocol: ssh
+        ip: 172.20.20.16
