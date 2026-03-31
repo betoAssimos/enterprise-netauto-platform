@@ -18,6 +18,7 @@ def main():
         print("  python automation/runner.py deploy ntp")
         print("  python automation/runner.py deploy bgp-policy")
         print("  python automation/runner.py deploy ssh")
+        print("  python automation/runner.py deploy syslog")
         sys.exit(1)
 
     module = sys.argv[1]
@@ -144,6 +145,12 @@ def main():
         from automation.test_connection import nr
         from automation.workflows.routing.bgp_policy_workflow import run_bgp_policy_deploy
         result = run_bgp_policy_deploy(nr)
+        print(result)
+
+    elif module == "deploy" and action == "syslog":
+        from automation.test_connection import nr
+        from automation.workflows.services.syslog_workflow import run_syslog_deploy
+        result = run_syslog_deploy(nr)
         print(result)
 
     else:

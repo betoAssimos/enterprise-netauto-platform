@@ -128,6 +128,11 @@ rtr-01:
         version: 2c
         trap_source: Loopback0
 
+      syslog:
+        server: 10.20.20.100
+        trap: informational
+        source_interface: Loopback0
+
       ssh:
         version: 2
         vty_lines: "0 4"
@@ -251,6 +256,11 @@ rtr-02:
         community: netauto
         version: 2c
         trap_source: Loopback0
+
+      syslog:
+        server: 10.20.20.100
+        trap: informational
+        source_interface: Loopback0
 
       ssh:
         version: 2
@@ -396,6 +406,11 @@ core-sw-01:
         version: 2c
         trap_source: Loopback0
 
+      syslog:
+        server: 10.20.20.100
+        trap: informational
+        source_interface: Loopback0
+
       # NTP
       ntp:
         server: 10.20.20.100
@@ -526,6 +541,11 @@ core-sw-02:
         community: netauto
         version: 2c
         trap_source: Loopback0
+
+      syslog:
+        server: 10.20.20.100
+        trap: informational
+        source_interface: Loopback0
 
       # NTP
       ntp:

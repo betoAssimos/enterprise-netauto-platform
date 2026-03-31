@@ -1,0 +1,21 @@
+---
+# ansible/roles/syslog_server/tasks/main.yml
+#
+# Start socat as a UDP syslog receiver on port 514.
+# Writes all incoming messages to /var/log/syslog_remote.log.
+#
+# Note: socat does not survive container restarts.
+# After lab restart, re-run this playbook.
+- name: Kill existing socat syslog listener if running
+  shell: ps aux | grep 'socat.*UDP-LISTEN:514' | grep -v grep | awk '{print $1}' | xargs -r kill || true
+  changed_when: false
+
+- name: Start socat syslog receiver
+  shell: socat -u UDP-LISTEN:514,fork OPEN:/var/log/syslog_remote.log,creat,append &
+  changed_when: true
+
+- name: Verify socat is listening on UDP 514
+  shell: pgrep -f 'socat.*UDP-LISTEN:514'
+  register: socat_check
+  changed_when: false
+  failed_when: socat_check.rc != 0

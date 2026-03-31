@@ -1,0 +1,12 @@
+{#
+  automation/templates/definitions/services/syslog_cisco.j2
+  Renders syslog configuration for Cisco IOS-XE (c8000v).
+
+  Required context variables:
+    syslog_server   (str) : Syslog server IP address
+    syslog_trap     (str) : Severity level (e.g. "informational")
+    syslog_source   (str) : Source interface for syslog messages
+#}
+logging host {{ syslog_server }}
+logging trap {{ syslog_trap }}
+logging source-interface {{ syslog_source }}
