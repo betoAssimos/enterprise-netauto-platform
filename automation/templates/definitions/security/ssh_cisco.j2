@@ -1,0 +1,13 @@
+{#
+  automation/templates/definitions/security/ssh_cisco.j2
+  Renders SSH hardening config for Cisco IOS-XE (c8000v).
+
+  Required context variables:
+    ssh_version      (int) : SSH version (2)
+    vty_lines        (str) : VTY line range (e.g. "0 4")
+    transport_input  (str) : Allowed transport (e.g. "ssh")
+#}
+ip ssh version {{ ssh_version }}
+!
+line vty {{ vty_lines }}
+ transport input {{ transport_input }}

@@ -17,6 +17,7 @@ def main():
         print("  python automation/runner.py deploy vrrp")
         print("  python automation/runner.py deploy ntp")
         print("  python automation/runner.py deploy bgp-policy")
+        print("  python automation/runner.py deploy ssh")
         sys.exit(1)
 
     module = sys.argv[1]
@@ -131,6 +132,12 @@ def main():
         from automation.test_connection import nr
         from automation.workflows.services.ntp_workflow import run_ntp_deploy
         result = run_ntp_deploy(nr)
+        print(result)
+
+    elif module == "deploy" and action == "ssh":
+        from automation.test_connection import nr
+        from automation.workflows.security.ssh_hardening_workflow import run_ssh_deploy
+        result = run_ssh_deploy(nr)
         print(result)
 
     elif module == "deploy" and action == "bgp-policy":

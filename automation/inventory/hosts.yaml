@@ -128,6 +128,11 @@ rtr-01:
         version: 2c
         trap_source: Loopback0
 
+      ssh:
+        version: 2
+        vty_lines: "0 4"
+        transport_input: ssh
+
       # NTP
       ntp:
         server: 10.20.20.100
@@ -246,6 +251,11 @@ rtr-02:
         community: netauto
         version: 2c
         trap_source: Loopback0
+
+      ssh:
+        version: 2
+        vty_lines: "0 4"
+        transport_input: ssh
 
       # NTP
       ntp:
