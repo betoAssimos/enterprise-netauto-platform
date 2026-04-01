@@ -144,6 +144,8 @@ deploy:full-stack:
     - $VENV_PYTHON automation/runner.py deploy ntp
     - echo "--- Syslog ---"
     - $VENV_PYTHON automation/runner.py deploy syslog
+    - echo "--- SNMP ---"
+    - $VENV_PYTHON automation/runner.py deploy snmp
     - echo "--- SSH hardening ---"
     - $VENV_PYTHON automation/runner.py deploy ssh
     - echo "==> Full stack deployment complete"
@@ -164,6 +166,19 @@ postvalidation:bgp-verify:
   artifacts:
     paths:
       - postcheck.log
+    expire_in: 30 days
+    when: always
+
+postvalidation:bgp-intent:
+  stage: postvalidation
+  needs: [deploy:full-stack]
+  script:
+    - echo "==> Running BGP intent validation"
+    - $VENV_PYATS run job tests/postcheck/test_bgp_intent.py --testbed tests/testbed.yaml 2>&1 | tee bgp_intent.log
+    - grep -E "Result\s*:\s*PASSED" bgp_intent.log || (echo "INTENT CHECK FAILED — advertised prefixes do not match policy intent" && exit 1)
+  artifacts:
+    paths:
+      - bgp_intent.log
     expire_in: 30 days
     when: always
 
