@@ -1,16 +1,21 @@
 {#
-  automation/templates/definitions/ospf/process_eos.j2
-
+  automation/templates/definitions/routing/ospf/process_eos.j2
   Arista EOS — OSPF process configuration.
 
   Interface-level OSPF participation (ip ospf area X) is configured
   in the interface deploy workflow via layer3_eos.j2.
-  This template only configures the OSPF process and router-id.
+  This template configures the OSPF process, router-id, and static routes.
 
   Required context variables:
-    ospf_process   (int) : OSPF process ID
-    ospf_router_id (str) : Router-ID
+    ospf_process   (int)  : OSPF process ID
+    ospf_router_id (str)  : Router-ID
+
+  Optional:
+    static_routes  (list) : List of {prefix, next_hop} dicts (CIDR notation)
 #}
+{% for route in static_routes %}
+ip route {{ route.prefix }} {{ route.next_hop }}
+{% endfor %}
 router ospf {{ ospf_process }}
    router-id {{ ospf_router_id }}
    passive-interface default

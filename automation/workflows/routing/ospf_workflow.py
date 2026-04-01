@@ -18,6 +18,7 @@ Platform split:
 """
 from __future__ import annotations
 
+from multiprocessing import context
 from typing import Any
 
 from nornir.core import Nornir
@@ -30,7 +31,7 @@ from automation.rollback.rollback import rollback_config
 
 log = get_logger(__name__)
 
-CISCO_OSPF_TEMPLATE = "routing/ospf/process.j2"
+CISCO_OSPF_TEMPLATE = "routing/ospf/process_ios.j2"
 EOS_OSPF_TEMPLATE = "routing/ospf/process_eos.j2"
 
 
@@ -62,6 +63,9 @@ def _cisco_ospf_context(task: Task) -> dict[str, Any]:
     if ospf_redistribute_bgp:
         context["ospf_redistribute_bgp"] = int(ospf_redistribute_bgp)
 
+    context["ospf_default_originate"] = custom_fields.get("ospf_default_originate", False)
+    context["static_routes"] = custom_fields.get("static_routes", [])
+
     log.debug(
         "OSPF context built",
         device=device,
@@ -89,6 +93,7 @@ def _eos_ospf_context(task: Task) -> dict[str, Any]:
         "ospf_process": int(ospf_process),
         "ospf_router_id": custom_fields.get("ospf_router_id"),
     }
+    context["static_routes"] = custom_fields.get("static_routes", [])
 
     log.debug(
         "OSPF context built",

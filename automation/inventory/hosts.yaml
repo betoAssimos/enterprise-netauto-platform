@@ -67,6 +67,13 @@ rtr-01:
           wildcard: 0.0.0.3
           area: 0
 
+      ospf_default_originate: true
+
+      static_routes:
+        - prefix: 0.0.0.0
+          mask: 0.0.0.0
+          next_hop: 203.0.113.1
+
       # NAT — inside: Gi3+Gi4 (core links), outside: Gi5 (inet-host)
       nat_inside_interfaces:
         - GigabitEthernet3
@@ -197,6 +204,13 @@ rtr-02:
           wildcard: 0.0.0.3
           area: 0
 
+      ospf_default_originate: true
+
+      static_routes:
+        - prefix: 0.0.0.0
+          mask: 0.0.0.0
+          next_hop: 203.0.113.5
+
       # NAT — inside: Gi3+Gi4 (core links), outside: Gi5 (inet-host)
       nat_inside_interfaces:
         - GigabitEthernet3
@@ -308,6 +322,12 @@ core-sw-01:
         - network: 10.99.99.0
           wildcard: 0.0.0.255
           area: 0
+
+      static_routes:
+        - prefix: 203.0.113.0/30
+          next_hop: 10.1.0.1
+        - prefix: 203.0.113.4/30
+          next_hop: 10.2.0.1
 
       # MLAG
       mlag_domain_id: 1
@@ -450,6 +470,12 @@ core-sw-02:
         - network: 10.99.99.0
           wildcard: 0.0.0.255
           area: 0
+
+      static_routes:
+        - prefix: 203.0.113.0/30
+          next_hop: 10.1.0.5
+        - prefix: 203.0.113.4/30
+          next_hop: 10.2.0.5
 
       # MLAG
       mlag_domain_id: 1

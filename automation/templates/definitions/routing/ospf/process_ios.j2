@@ -1,0 +1,28 @@
+{#
+  automation/templates/definitions/routing/ospf/process_ios.j2
+  Renders OSPF process configuration for Cisco IOS-XE (c8000v).
+
+  Required context variables:
+    ospf_process         (int)  : OSPF process ID
+    ospf_router_id       (str)  : Router-ID
+    ospf_networks        (list) : List of {network, wildcard, area} dicts
+
+  Optional:
+    ospf_redistribute_bgp  (int)  : BGP AS to redistribute into OSPF
+    ospf_default_originate (bool) : Advertise default route into OSPF
+    static_routes          (list) : List of {prefix, mask, next_hop} dicts
+#}
+{% for route in static_routes %}
+ip route {{ route.prefix }} {{ route.mask }} {{ route.next_hop }}
+{% endfor %}
+router ospf {{ ospf_process }}
+ router-id {{ ospf_router_id }}
+{% if ospf_redistribute_bgp is defined %}
+ redistribute bgp {{ ospf_redistribute_bgp }}
+{% endif %}
+{% for net in ospf_networks %}
+ network {{ net.network }} {{ net.wildcard }} area {{ net.area }}
+{% endfor %}
+{% if ospf_default_originate %}
+ default-information originate always
+{% endif %}
