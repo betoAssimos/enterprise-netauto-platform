@@ -1,0 +1,11 @@
+{#
+  automation/templates/definitions/services/snmp_cisco.j2
+  Renders SNMP configuration for Cisco IOS-XE (c8000v).
+
+  Required context variables:
+    snmp_community   (str) : SNMP community string
+    snmp_trap_source (str) : Source interface for SNMP traps
+#}
+snmp-server community {{ snmp_community }} RO
+snmp-server ifindex persist
+snmp-server trap-source {{ snmp_trap_source }}

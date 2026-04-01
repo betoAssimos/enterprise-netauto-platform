@@ -847,7 +847,7 @@
                             "type": "prometheus",
                             "uid": "eff45310579c0e"
                         },
-                        "expr": "100 * (rate(ifInOctets{instance=~\"$device\"}[2m]) + rate(ifOutOctets{instance=~\"$device\"}[2m])) * 8 / ifSpeed{instance=~\"$device\"}",
+                        "expr": "100 * (rate(ifInOctets{instance=~\"$device\",ifDescr!~\"Management.*|Loopback.*|lo\"}[2m]) + rate(ifOutOctets{instance=~\"$device\",ifDescr!~\"Management.*|Loopback.*|lo\"}[2m])) * 8 / ifSpeed{instance=~\"$device\",ifDescr!~\"Management.*|Loopback.*|lo\"}",
                         "legendFormat": "{{ instance }} \u2013 {{ ifDescr }}",
                         "refId": "A"
                     }

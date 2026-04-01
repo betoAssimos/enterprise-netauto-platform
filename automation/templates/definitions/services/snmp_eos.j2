@@ -1,0 +1,10 @@
+{#
+  automation/templates/definitions/services/snmp_eos.j2
+  Renders SNMP configuration for Arista EOS (cEOS).
+
+  Required context variables:
+    snmp_community   (str) : SNMP community string
+    snmp_trap_source (str) : Source interface for SNMP traps
+#}
+snmp-server community {{ snmp_community }} ro
+snmp-server local-interface {{ snmp_trap_source }}
