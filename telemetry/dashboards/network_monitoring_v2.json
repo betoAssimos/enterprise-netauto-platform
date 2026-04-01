@@ -672,7 +672,7 @@
                             "type": "prometheus",
                             "uid": "eff45310579c0e"
                         },
-                        "expr": "rate(ifInOctets{instance=~\"$device\"}[2m])",
+                        "expr": "rate(ifInOctets{instance=~\"$device\",ifDescr!~\"Management.*|Loopback.*|lo\"}[2m])",
                         "legendFormat": "{{ instance }} \u2013 {{ ifDescr }}",
                         "refId": "A"
                     }
@@ -772,7 +772,7 @@
                             "type": "prometheus",
                             "uid": "eff45310579c0e"
                         },
-                        "expr": "rate(ifOutOctets{instance=~\"$device\"}[2m])",
+                        "expr": "rate(ifOutOctets{instance=~\"$device\",ifDescr!~\"Management.*|Loopback.*|lo\"}[2m])",
                         "legendFormat": "{{ instance }} \u2013 {{ ifDescr }}",
                         "refId": "A"
                     }
@@ -1067,7 +1067,7 @@
                             "type": "prometheus",
                             "uid": "eff45310579c0e"
                         },
-                        "expr": "ifOperStatus{instance=~\"$device\"}",
+                        "expr": "ifOperStatus{instance=~\"$device\",ifDescr=~\"GigabitEthernet[2-5]|Ethernet[1-7]|Port-Channel.*\"}",
                         "legendFormat": "{{ instance }} \u2013 {{ ifDescr }}",
                         "refId": "A"
                     }
