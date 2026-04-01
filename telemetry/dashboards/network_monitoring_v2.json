@@ -1,0 +1,1132 @@
+{
+    "meta": {
+        "type": "db",
+        "canSave": true,
+        "canEdit": true,
+        "canAdmin": true,
+        "canStar": true,
+        "canDelete": true,
+        "slug": "network-device-monitoring-v2-e28093-snmp",
+        "url": "/d/netauto-snmp-002/network-device-monitoring-v2-e28093-snmp",
+        "expires": "0001-01-01T00:00:00Z",
+        "created": "2026-03-06T15:10:36Z",
+        "updated": "2026-03-31T20:04:40Z",
+        "updatedBy": "admin",
+        "createdBy": "admin",
+        "version": 2,
+        "hasAcl": false,
+        "isFolder": false,
+        "apiVersion": "v0alpha1",
+        "folderId": 0,
+        "folderUid": "",
+        "folderTitle": "General",
+        "folderUrl": "",
+        "provisioned": false,
+        "provisionedExternalId": "",
+        "annotationsPermissions": {
+            "dashboard": {
+                "canAdd": true,
+                "canEdit": true,
+                "canDelete": true
+            },
+            "organization": {
+                "canAdd": true,
+                "canEdit": true,
+                "canDelete": true
+            }
+        }
+    },
+    "dashboard": {
+        "annotations": {
+            "list": [
+                {
+                    "builtIn": 1,
+                    "datasource": {
+                        "type": "grafana",
+                        "uid": "-- Grafana --"
+                    },
+                    "enable": true,
+                    "hide": true,
+                    "iconColor": "rgba(0, 211, 255, 1)",
+                    "name": "Annotations & Alerts",
+                    "type": "dashboard"
+                }
+            ]
+        },
+        "description": "Enterprise NetAuto Platform \u2013 Network Device Monitoring (SNMP) v2",
+        "editable": true,
+        "fiscalYearStartMonth": 0,
+        "graphTooltip": 1,
+        "id": 7,
+        "links": [],
+        "panels": [
+            {
+                "collapsed": false,
+                "gridPos": {
+                    "h": 1,
+                    "w": 24,
+                    "x": 0,
+                    "y": 0
+                },
+                "id": 100,
+                "panels": [],
+                "title": "\ud83d\udce1 Device Health",
+                "type": "row"
+            },
+            {
+                "datasource": {
+                    "type": "prometheus",
+                    "uid": "eff45310579c0e"
+                },
+                "fieldConfig": {
+                    "defaults": {
+                        "color": {
+                            "mode": "thresholds"
+                        },
+                        "mappings": [
+                            {
+                                "options": {
+                                    "0": {
+                                        "color": "red",
+                                        "index": 1,
+                                        "text": "DOWN"
+                                    },
+                                    "1": {
+                                        "color": "green",
+                                        "index": 0,
+                                        "text": "UP"
+                                    }
+                                },
+                                "type": "value"
+                            }
+                        ],
+                        "thresholds": {
+                            "mode": "absolute",
+                            "steps": [
+                                {
+                                    "color": "red",
+                                    "value": 0
+                                },
+                                {
+                                    "color": "green",
+                                    "value": 1
+                                }
+                            ]
+                        }
+                    },
+                    "overrides": []
+                },
+                "gridPos": {
+                    "h": 4,
+                    "w": 24,
+                    "x": 0,
+                    "y": 1
+                },
+                "id": 1,
+                "options": {
+                    "colorMode": "background",
+                    "graphMode": "none",
+                    "justifyMode": "center",
+                    "orientation": "horizontal",
+                    "percentChangeColorMode": "standard",
+                    "reduceOptions": {
+                        "calcs": [
+                            "lastNotNull"
+                        ],
+                        "fields": "",
+                        "values": false
+                    },
+                    "showPercentChange": false,
+                    "textMode": "auto",
+                    "wideLayout": true
+                },
+                "pluginVersion": "12.3.1",
+                "targets": [
+                    {
+                        "datasource": {
+                            "type": "prometheus",
+                            "uid": "eff45310579c0e"
+                        },
+                        "expr": "up{instance=~\"$device\"}",
+                        "legendFormat": "{{ instance }}",
+                        "refId": "A"
+                    }
+                ],
+                "title": "Device Reachability",
+                "type": "stat"
+            },
+            {
+                "datasource": {
+                    "type": "prometheus",
+                    "uid": "eff45310579c0e"
+                },
+                "fieldConfig": {
+                    "defaults": {
+                        "color": {
+                            "mode": "thresholds"
+                        },
+                        "mappings": [],
+                        "thresholds": {
+                            "mode": "absolute",
+                            "steps": [
+                                {
+                                    "color": "green",
+                                    "value": 0
+                                }
+                            ]
+                        },
+                        "unit": "s"
+                    },
+                    "overrides": []
+                },
+                "gridPos": {
+                    "h": 4,
+                    "w": 24,
+                    "x": 0,
+                    "y": 5
+                },
+                "id": 2,
+                "options": {
+                    "colorMode": "value",
+                    "graphMode": "area",
+                    "justifyMode": "auto",
+                    "orientation": "horizontal",
+                    "percentChangeColorMode": "standard",
+                    "reduceOptions": {
+                        "calcs": [
+                            "lastNotNull"
+                        ],
+                        "fields": "",
+                        "values": false
+                    },
+                    "showPercentChange": false,
+                    "textMode": "auto",
+                    "wideLayout": true
+                },
+                "pluginVersion": "12.3.1",
+                "targets": [
+                    {
+                        "datasource": {
+                            "type": "prometheus",
+                            "uid": "eff45310579c0e"
+                        },
+                        "expr": "sysUpTime{instance=~\"$device\"} / 100",
+                        "legendFormat": "{{ instance }}",
+                        "refId": "A"
+                    }
+                ],
+                "title": "Device Uptime",
+                "type": "stat"
+            },
+            {
+                "collapsed": false,
+                "gridPos": {
+                    "h": 1,
+                    "w": 24,
+                    "x": 0,
+                    "y": 9
+                },
+                "id": 101,
+                "panels": [],
+                "title": "\ud83d\udd00 BGP Sessions",
+                "type": "row"
+            },
+            {
+                "datasource": {
+                    "type": "prometheus",
+                    "uid": "eff45310579c0e"
+                },
+                "fieldConfig": {
+                    "defaults": {
+                        "color": {
+                            "mode": "thresholds"
+                        },
+                        "mappings": [
+                            {
+                                "options": {
+                                    "1": {
+                                        "color": "red",
+                                        "index": 0,
+                                        "text": "IDLE"
+                                    },
+                                    "2": {
+                                        "color": "orange",
+                                        "index": 1,
+                                        "text": "CONNECT"
+                                    },
+                                    "3": {
+                                        "color": "orange",
+                                        "index": 2,
+                                        "text": "ACTIVE"
+                                    },
+                                    "4": {
+                                        "color": "yellow",
+                                        "index": 3,
+                                        "text": "OPENSENT"
+                                    },
+                                    "5": {
+                                        "color": "yellow",
+                                        "index": 4,
+                                        "text": "OPENCONFIRM"
+                                    },
+                                    "6": {
+                                        "color": "green",
+                                        "index": 5,
+                                        "text": "ESTABLISHED"
+                                    }
+                                },
+                                "type": "value"
+                            }
+                        ],
+                        "thresholds": {
+                            "mode": "absolute",
+                            "steps": [
+                                {
+                                    "color": "red",
+                                    "value": 0
+                                },
+                                {
+                                    "color": "green",
+                                    "value": 6
+                                }
+                            ]
+                        }
+                    },
+                    "overrides": []
+                },
+                "gridPos": {
+                    "h": 5,
+                    "w": 24,
+                    "x": 0,
+                    "y": 10
+                },
+                "id": 10,
+                "options": {
+                    "colorMode": "background",
+                    "graphMode": "none",
+                    "justifyMode": "center",
+                    "orientation": "horizontal",
+                    "percentChangeColorMode": "standard",
+                    "reduceOptions": {
+                        "calcs": [
+                            "lastNotNull"
+                        ],
+                        "fields": "",
+                        "values": false
+                    },
+                    "showPercentChange": false,
+                    "textMode": "auto",
+                    "wideLayout": true
+                },
+                "pluginVersion": "12.3.1",
+                "targets": [
+                    {
+                        "datasource": {
+                            "type": "prometheus",
+                            "uid": "eff45310579c0e"
+                        },
+                        "expr": "bgpPeerState{instance=~\"$device\"}",
+                        "legendFormat": "{{ instance }} \u2192 {{ bgpPeerRemoteAddr }}",
+                        "refId": "A"
+                    }
+                ],
+                "title": "BGP Peer State (6 = ESTABLISHED)",
+                "type": "stat"
+            },
+            {
+                "datasource": {
+                    "type": "prometheus",
+                    "uid": "eff45310579c0e"
+                },
+                "fieldConfig": {
+                    "defaults": {
+                        "color": {
+                            "mode": "palette-classic"
+                        },
+                        "custom": {
+                            "axisBorderShow": false,
+                            "axisCenteredZero": false,
+                            "axisColorMode": "text",
+                            "axisLabel": "",
+                            "axisPlacement": "auto",
+                            "barAlignment": 0,
+                            "barWidthFactor": 0.6,
+                            "drawStyle": "line",
+                            "fillOpacity": 10,
+                            "gradientMode": "none",
+                            "hideFrom": {
+                                "legend": false,
+                                "tooltip": false,
+                                "viz": false
+                            },
+                            "insertNulls": false,
+                            "lineInterpolation": "smooth",
+                            "lineWidth": 2,
+                            "pointSize": 5,
+                            "scaleDistribution": {
+                                "type": "linear"
+                            },
+                            "showPoints": "never",
+                            "showValues": false,
+                            "spanNulls": false,
+                            "stacking": {
+                                "group": "A",
+                                "mode": "none"
+                            },
+                            "thresholdsStyle": {
+                                "mode": "off"
+                            }
+                        },
+                        "mappings": [],
+                        "thresholds": {
+                            "mode": "absolute",
+                            "steps": [
+                                {
+                                    "color": "green",
+                                    "value": 0
+                                },
+                                {
+                                    "color": "red",
+                                    "value": 80
+                                }
+                            ]
+                        },
+                        "unit": "short"
+                    },
+                    "overrides": []
+                },
+                "gridPos": {
+                    "h": 7,
+                    "w": 24,
+                    "x": 0,
+                    "y": 15
+                },
+                "id": 11,
+                "options": {
+                    "legend": {
+                        "calcs": [
+                            "last",
+                            "max"
+                        ],
+                        "displayMode": "table",
+                        "placement": "bottom",
+                        "showLegend": true
+                    },
+                    "tooltip": {
+                        "hideZeros": false,
+                        "mode": "multi",
+                        "sort": "desc"
+                    }
+                },
+                "pluginVersion": "12.3.1",
+                "targets": [
+                    {
+                        "datasource": {
+                            "type": "prometheus",
+                            "uid": "eff45310579c0e"
+                        },
+                        "expr": "rate(bgpPeerInUpdates{instance=~\"$device\"}[2m])",
+                        "legendFormat": "IN  {{ instance }} \u2192 {{ bgpPeerRemoteAddr }}",
+                        "refId": "A"
+                    },
+                    {
+                        "datasource": {
+                            "type": "prometheus",
+                            "uid": "eff45310579c0e"
+                        },
+                        "expr": "rate(bgpPeerOutUpdates{instance=~\"$device\"}[2m])",
+                        "legendFormat": "OUT {{ instance }} \u2192 {{ bgpPeerRemoteAddr }}",
+                        "refId": "B"
+                    }
+                ],
+                "title": "BGP Updates Received/Sent",
+                "type": "timeseries"
+            },
+            {
+                "collapsed": false,
+                "gridPos": {
+                    "h": 1,
+                    "w": 24,
+                    "x": 0,
+                    "y": 22
+                },
+                "id": 102,
+                "panels": [],
+                "title": "\ud83d\udd78 OSPF Neighbors",
+                "type": "row"
+            },
+            {
+                "datasource": {
+                    "type": "prometheus",
+                    "uid": "eff45310579c0e"
+                },
+                "fieldConfig": {
+                    "defaults": {
+                        "color": {
+                            "mode": "thresholds"
+                        },
+                        "mappings": [
+                            {
+                                "options": {
+                                    "1": {
+                                        "color": "red",
+                                        "index": 0,
+                                        "text": "DOWN"
+                                    },
+                                    "2": {
+                                        "color": "orange",
+                                        "index": 1,
+                                        "text": "ATTEMPT"
+                                    },
+                                    "3": {
+                                        "color": "orange",
+                                        "index": 2,
+                                        "text": "INIT"
+                                    },
+                                    "4": {
+                                        "color": "yellow",
+                                        "index": 3,
+                                        "text": "2-WAY"
+                                    },
+                                    "5": {
+                                        "color": "yellow",
+                                        "index": 4,
+                                        "text": "EXSTART"
+                                    },
+                                    "6": {
+                                        "color": "yellow",
+                                        "index": 5,
+                                        "text": "EXCHANGE"
+                                    },
+                                    "7": {
+                                        "color": "yellow",
+                                        "index": 6,
+                                        "text": "LOADING"
+                                    },
+                                    "8": {
+                                        "color": "green",
+                                        "index": 7,
+                                        "text": "FULL"
+                                    }
+                                },
+                                "type": "value"
+                            }
+                        ],
+                        "thresholds": {
+                            "mode": "absolute",
+                            "steps": [
+                                {
+                                    "color": "red",
+                                    "value": 0
+                                },
+                                {
+                                    "color": "green",
+                                    "value": 8
+                                }
+                            ]
+                        }
+                    },
+                    "overrides": []
+                },
+                "gridPos": {
+                    "h": 5,
+                    "w": 24,
+                    "x": 0,
+                    "y": 23
+                },
+                "id": 20,
+                "options": {
+                    "colorMode": "background",
+                    "graphMode": "none",
+                    "justifyMode": "center",
+                    "orientation": "horizontal",
+                    "percentChangeColorMode": "standard",
+                    "reduceOptions": {
+                        "calcs": [
+                            "lastNotNull"
+                        ],
+                        "fields": "",
+                        "values": false
+                    },
+                    "showPercentChange": false,
+                    "textMode": "auto",
+                    "wideLayout": true
+                },
+                "pluginVersion": "12.3.1",
+                "targets": [
+                    {
+                        "datasource": {
+                            "type": "prometheus",
+                            "uid": "eff45310579c0e"
+                        },
+                        "expr": "ospfNbrState{instance=~\"$device\"}",
+                        "legendFormat": "{{ instance }} nbr {{ ospfNbrIpAddr }}",
+                        "refId": "A"
+                    }
+                ],
+                "title": "OSPF Neighbor State (8 = FULL)",
+                "type": "stat"
+            },
+            {
+                "collapsed": false,
+                "gridPos": {
+                    "h": 1,
+                    "w": 24,
+                    "x": 0,
+                    "y": 28
+                },
+                "id": 103,
+                "panels": [],
+                "title": "\ud83d\udcca Interface Traffic",
+                "type": "row"
+            },
+            {
+                "datasource": {
+                    "type": "prometheus",
+                    "uid": "eff45310579c0e"
+                },
+                "fieldConfig": {
+                    "defaults": {
+                        "color": {
+                            "mode": "palette-classic"
+                        },
+                        "custom": {
+                            "axisBorderShow": false,
+                            "axisCenteredZero": false,
+                            "axisColorMode": "text",
+                            "axisLabel": "",
+                            "axisPlacement": "auto",
+                            "barAlignment": 0,
+                            "barWidthFactor": 0.6,
+                            "drawStyle": "line",
+                            "fillOpacity": 15,
+                            "gradientMode": "none",
+                            "hideFrom": {
+                                "legend": false,
+                                "tooltip": false,
+                                "viz": false
+                            },
+                            "insertNulls": false,
+                            "lineInterpolation": "smooth",
+                            "lineWidth": 2,
+                            "pointSize": 4,
+                            "scaleDistribution": {
+                                "type": "linear"
+                            },
+                            "showPoints": "never",
+                            "showValues": false,
+                            "spanNulls": false,
+                            "stacking": {
+                                "group": "A",
+                                "mode": "none"
+                            },
+                            "thresholdsStyle": {
+                                "mode": "off"
+                            }
+                        },
+                        "mappings": [],
+                        "thresholds": {
+                            "mode": "absolute",
+                            "steps": [
+                                {
+                                    "color": "green",
+                                    "value": 0
+                                },
+                                {
+                                    "color": "red",
+                                    "value": 80
+                                }
+                            ]
+                        },
+                        "unit": "Bps"
+                    },
+                    "overrides": []
+                },
+                "gridPos": {
+                    "h": 9,
+                    "w": 12,
+                    "x": 0,
+                    "y": 29
+                },
+                "id": 30,
+                "options": {
+                    "legend": {
+                        "calcs": [
+                            "mean",
+                            "max"
+                        ],
+                        "displayMode": "table",
+                        "placement": "bottom",
+                        "showLegend": true
+                    },
+                    "tooltip": {
+                        "hideZeros": false,
+                        "mode": "multi",
+                        "sort": "desc"
+                    }
+                },
+                "pluginVersion": "12.3.1",
+                "targets": [
+                    {
+                        "datasource": {
+                            "type": "prometheus",
+                            "uid": "eff45310579c0e"
+                        },
+                        "expr": "rate(ifInOctets{instance=~\"$device\"}[2m])",
+                        "legendFormat": "{{ instance }} \u2013 {{ ifDescr }}",
+                        "refId": "A"
+                    }
+                ],
+                "title": "Inbound Traffic by Interface (Bytes/s)",
+                "type": "timeseries"
+            },
+            {
+                "datasource": {
+                    "type": "prometheus",
+                    "uid": "eff45310579c0e"
+                },
+                "fieldConfig": {
+                    "defaults": {
+                        "color": {
+                            "mode": "palette-classic"
+                        },
+                        "custom": {
+                            "axisBorderShow": false,
+                            "axisCenteredZero": false,
+                            "axisColorMode": "text",
+                            "axisLabel": "",
+                            "axisPlacement": "auto",
+                            "barAlignment": 0,
+                            "barWidthFactor": 0.6,
+                            "drawStyle": "line",
+                            "fillOpacity": 15,
+                            "gradientMode": "none",
+                            "hideFrom": {
+                                "legend": false,
+                                "tooltip": false,
+                                "viz": false
+                            },
+                            "insertNulls": false,
+                            "lineInterpolation": "smooth",
+                            "lineWidth": 2,
+                            "pointSize": 4,
+                            "scaleDistribution": {
+                                "type": "linear"
+                            },
+                            "showPoints": "never",
+                            "showValues": false,
+                            "spanNulls": false,
+                            "stacking": {
+                                "group": "A",
+                                "mode": "none"
+                            },
+                            "thresholdsStyle": {
+                                "mode": "off"
+                            }
+                        },
+                        "mappings": [],
+                        "thresholds": {
+                            "mode": "absolute",
+                            "steps": [
+                                {
+                                    "color": "green",
+                                    "value": 0
+                                },
+                                {
+                                    "color": "red",
+                                    "value": 80
+                                }
+                            ]
+                        },
+                        "unit": "Bps"
+                    },
+                    "overrides": []
+                },
+                "gridPos": {
+                    "h": 9,
+                    "w": 12,
+                    "x": 12,
+                    "y": 29
+                },
+                "id": 31,
+                "options": {
+                    "legend": {
+                        "calcs": [
+                            "mean",
+                            "max"
+                        ],
+                        "displayMode": "table",
+                        "placement": "bottom",
+                        "showLegend": true
+                    },
+                    "tooltip": {
+                        "hideZeros": false,
+                        "mode": "multi",
+                        "sort": "desc"
+                    }
+                },
+                "pluginVersion": "12.3.1",
+                "targets": [
+                    {
+                        "datasource": {
+                            "type": "prometheus",
+                            "uid": "eff45310579c0e"
+                        },
+                        "expr": "rate(ifOutOctets{instance=~\"$device\"}[2m])",
+                        "legendFormat": "{{ instance }} \u2013 {{ ifDescr }}",
+                        "refId": "A"
+                    }
+                ],
+                "title": "Outbound Traffic by Interface (Bytes/s)",
+                "type": "timeseries"
+            },
+            {
+                "datasource": {
+                    "type": "prometheus",
+                    "uid": "eff45310579c0e"
+                },
+                "fieldConfig": {
+                    "defaults": {
+                        "color": {
+                            "mode": "thresholds"
+                        },
+                        "custom": {
+                            "drawStyle": "line",
+                            "fillOpacity": 10,
+                            "lineInterpolation": "smooth",
+                            "lineWidth": 2,
+                            "showPoints": "never"
+                        },
+                        "max": 100,
+                        "min": 0,
+                        "thresholds": {
+                            "mode": "absolute",
+                            "steps": [
+                                {
+                                    "color": "green"
+                                },
+                                {
+                                    "color": "yellow",
+                                    "value": 50
+                                },
+                                {
+                                    "color": "red",
+                                    "value": 80
+                                }
+                            ]
+                        },
+                        "unit": "percent"
+                    },
+                    "overrides": []
+                },
+                "gridPos": {
+                    "h": 9,
+                    "w": 24,
+                    "x": 0,
+                    "y": 38
+                },
+                "id": 32,
+                "options": {
+                    "legend": {
+                        "calcs": [
+                            "mean",
+                            "max"
+                        ],
+                        "displayMode": "table",
+                        "placement": "bottom",
+                        "showLegend": true
+                    },
+                    "tooltip": {
+                        "mode": "multi",
+                        "sort": "desc"
+                    }
+                },
+                "targets": [
+                    {
+                        "datasource": {
+                            "type": "prometheus",
+                            "uid": "eff45310579c0e"
+                        },
+                        "expr": "100 * (rate(ifInOctets{instance=~\"$device\"}[2m]) + rate(ifOutOctets{instance=~\"$device\"}[2m])) * 8 / ifSpeed{instance=~\"$device\"}",
+                        "legendFormat": "{{ instance }} \u2013 {{ ifDescr }}",
+                        "refId": "A"
+                    }
+                ],
+                "title": "Bandwidth Utilization % (In+Out / Speed)",
+                "type": "timeseries"
+            },
+            {
+                "collapsed": false,
+                "gridPos": {
+                    "h": 1,
+                    "w": 24,
+                    "x": 0,
+                    "y": 47
+                },
+                "id": 104,
+                "panels": [],
+                "title": "\u26a0\ufe0f Interface Errors & Discards",
+                "type": "row"
+            },
+            {
+                "datasource": {
+                    "type": "prometheus",
+                    "uid": "eff45310579c0e"
+                },
+                "fieldConfig": {
+                    "defaults": {
+                        "color": {
+                            "mode": "palette-classic"
+                        },
+                        "custom": {
+                            "drawStyle": "bars",
+                            "fillOpacity": 60,
+                            "lineWidth": 1,
+                            "showPoints": "never"
+                        },
+                        "unit": "short"
+                    },
+                    "overrides": []
+                },
+                "gridPos": {
+                    "h": 8,
+                    "w": 12,
+                    "x": 0,
+                    "y": 48
+                },
+                "id": 40,
+                "options": {
+                    "legend": {
+                        "calcs": [
+                            "sum"
+                        ],
+                        "displayMode": "table",
+                        "placement": "bottom",
+                        "showLegend": true
+                    },
+                    "tooltip": {
+                        "mode": "multi",
+                        "sort": "desc"
+                    }
+                },
+                "targets": [
+                    {
+                        "datasource": {
+                            "type": "prometheus",
+                            "uid": "eff45310579c0e"
+                        },
+                        "expr": "rate(ifInErrors{instance=~\"$device\"}[2m])",
+                        "legendFormat": "IN ERR {{ instance }} \u2013 {{ ifDescr }}",
+                        "refId": "A"
+                    },
+                    {
+                        "datasource": {
+                            "type": "prometheus",
+                            "uid": "eff45310579c0e"
+                        },
+                        "expr": "rate(ifOutErrors{instance=~\"$device\"}[2m])",
+                        "legendFormat": "OUT ERR {{ instance }} \u2013 {{ ifDescr }}",
+                        "refId": "B"
+                    }
+                ],
+                "title": "Interface Errors (rate/2m)",
+                "type": "timeseries"
+            },
+            {
+                "datasource": {
+                    "type": "prometheus",
+                    "uid": "eff45310579c0e"
+                },
+                "fieldConfig": {
+                    "defaults": {
+                        "color": {
+                            "mode": "palette-classic"
+                        },
+                        "custom": {
+                            "drawStyle": "bars",
+                            "fillOpacity": 60,
+                            "lineWidth": 1,
+                            "showPoints": "never"
+                        },
+                        "unit": "short"
+                    },
+                    "overrides": []
+                },
+                "gridPos": {
+                    "h": 8,
+                    "w": 12,
+                    "x": 12,
+                    "y": 48
+                },
+                "id": 41,
+                "options": {
+                    "legend": {
+                        "calcs": [
+                            "sum"
+                        ],
+                        "displayMode": "table",
+                        "placement": "bottom",
+                        "showLegend": true
+                    },
+                    "tooltip": {
+                        "mode": "multi",
+                        "sort": "desc"
+                    }
+                },
+                "targets": [
+                    {
+                        "datasource": {
+                            "type": "prometheus",
+                            "uid": "eff45310579c0e"
+                        },
+                        "expr": "rate(ifInDiscards{instance=~\"$device\"}[2m])",
+                        "legendFormat": "IN DISC {{ instance }} \u2013 {{ ifDescr }}",
+                        "refId": "A"
+                    }
+                ],
+                "title": "Interface Discards (rate/2m)",
+                "type": "timeseries"
+            },
+            {
+                "collapsed": false,
+                "gridPos": {
+                    "h": 1,
+                    "w": 24,
+                    "x": 0,
+                    "y": 56
+                },
+                "id": 105,
+                "panels": [],
+                "title": "\ud83d\udd0c Interface Status",
+                "type": "row"
+            },
+            {
+                "datasource": {
+                    "type": "prometheus",
+                    "uid": "eff45310579c0e"
+                },
+                "fieldConfig": {
+                    "defaults": {
+                        "color": {
+                            "mode": "thresholds"
+                        },
+                        "mappings": [
+                            {
+                                "options": {
+                                    "1": {
+                                        "color": "green",
+                                        "index": 0,
+                                        "text": "UP"
+                                    },
+                                    "2": {
+                                        "color": "red",
+                                        "index": 1,
+                                        "text": "DOWN"
+                                    }
+                                },
+                                "type": "value"
+                            }
+                        ],
+                        "thresholds": {
+                            "mode": "absolute",
+                            "steps": [
+                                {
+                                    "color": "red"
+                                },
+                                {
+                                    "color": "green",
+                                    "value": 1
+                                }
+                            ]
+                        }
+                    },
+                    "overrides": []
+                },
+                "gridPos": {
+                    "h": 7,
+                    "w": 24,
+                    "x": 0,
+                    "y": 57
+                },
+                "id": 50,
+                "options": {
+                    "colorMode": "background",
+                    "graphMode": "none",
+                    "justifyMode": "auto",
+                    "orientation": "horizontal",
+                    "reduceOptions": {
+                        "calcs": [
+                            "lastNotNull"
+                        ]
+                    },
+                    "textMode": "auto"
+                },
+                "targets": [
+                    {
+                        "datasource": {
+                            "type": "prometheus",
+                            "uid": "eff45310579c0e"
+                        },
+                        "expr": "ifOperStatus{instance=~\"$device\"}",
+                        "legendFormat": "{{ instance }} \u2013 {{ ifDescr }}",
+                        "refId": "A"
+                    }
+                ],
+                "title": "Interface Operational Status",
+                "type": "stat"
+            }
+        ],
+        "preload": false,
+        "refresh": "30s",
+        "schemaVersion": 42,
+        "tags": [
+            "network",
+            "snmp",
+            "netauto",
+            "bgp",
+            "ospf"
+        ],
+        "templating": {
+            "list": [
+                {
+                    "current": {
+                        "text": [
+                            "All"
+                        ],
+                        "value": [
+                            "$__all"
+                        ]
+                    },
+                    "datasource": {
+                        "type": "prometheus",
+                        "uid": "eff45310579c0e"
+                    },
+                    "definition": "label_values(up, instance)",
+                    "includeAll": true,
+                    "label": "Device",
+                    "multi": true,
+                    "name": "device",
+                    "options": [],
+                    "query": {
+                        "query": "label_values(up, instance)",
+                        "refId": "StandardVariableQuery"
+                    },
+                    "refresh": 2,
+                    "regex": "172\\.20\\.20\\.1[1-6]",
+                    "sort": 1,
+                    "type": "query"
+                }
+            ]
+        },
+        "time": {
+            "from": "now-1h",
+            "to": "now"
+        },
+        "timepicker": {},
+        "timezone": "browser",
+        "title": "Network Device Monitoring v2 \u2013 SNMP",
+        "uid": "netauto-snmp-002",
+        "version": 2,
+        "weekStart": ""
+    }
+}
