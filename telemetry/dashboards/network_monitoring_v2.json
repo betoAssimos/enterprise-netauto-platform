@@ -1053,7 +1053,7 @@
                     "colorMode": "background",
                     "graphMode": "none",
                     "justifyMode": "auto",
-                    "orientation": "horizontal",
+                    "orientation": "auto",
                     "reduceOptions": {
                         "calcs": [
                             "lastNotNull"
