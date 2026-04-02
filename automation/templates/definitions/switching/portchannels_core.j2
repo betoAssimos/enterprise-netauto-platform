@@ -19,10 +19,12 @@ interface {{ mlag_peer_link }}
    description MLAG peer-link
    switchport mode trunk
    switchport trunk group MLAGPEER
+   no shutdown
 !
 {% for member in mlag_peer_link_members %}
 interface {{ member }}
    channel-group {{ mlag_peer_link | replace('Port-Channel', '') }} mode active
+   no shutdown
 !
 {% endfor %}
 {% for pc in mlag_portchannels %}
@@ -32,10 +34,12 @@ interface Port-Channel{{ pc.port_channel_id }}
    switchport mode trunk
    switchport trunk allowed vlan {{ pc.trunk_vlans }}
    mlag {{ pc.mlag_id }}
+   no shutdown 
 !
 {% for member in pc.members %}
 interface {{ member }}
    channel-group {{ pc.port_channel_id }} mode active
+    no shutdown
 !
 {% endfor %}
 {% endfor %}
@@ -46,6 +50,7 @@ interface {{ port.interface }}
    switchport mode access
    switchport access vlan {{ port.vlan }}
    description {{ port.description }}
+    no shutdown
 !
 {% endfor %}
 {% endif %}

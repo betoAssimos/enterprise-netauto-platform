@@ -16,10 +16,12 @@ interface Port-Channel{{ uplink_portchannel.id }}
    description {{ uplink_portchannel.description }}
    switchport mode trunk
    switchport trunk allowed vlan {{ uplink_portchannel.trunk_vlans }}
+   no shutdown
 !
 {% for member in uplink_portchannel.members %}
 interface {{ member }}
    channel-group {{ uplink_portchannel.id }} mode active
+   no shutdown
 !
 {% endfor %}
 {% for port in access_ports %}
@@ -28,5 +30,6 @@ interface {{ port.interface }}
    switchport mode access
    switchport access vlan {{ port.vlan }}
    description {{ port.description }}
+   no shutdown
 !
 {% endfor %}
