@@ -71,11 +71,9 @@ outputs:
 target-subscriptions:
   172.20.20.13:6030:
     - interfaces
-    - bgp
     - system
   172.20.20.14:6030:
     - interfaces
-    - bgp
     - system
   172.20.20.15:6030:
     - interfaces

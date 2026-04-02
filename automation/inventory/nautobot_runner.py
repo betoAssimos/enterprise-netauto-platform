@@ -26,11 +26,6 @@ from nornir.core.filter import F
 from automation.config import get_settings
 from automation.utils.logger import get_logger
 
-import sys
-print("DEBUG: script started", file=sys.stderr)
-print("DEBUG: Nautobot URL =", os.getenv("NAUTOBOT_URL"), file=sys.stderr)
-print("DEBUG: Nautobot token present =", bool(os.getenv("NAUTOBOT_TOKEN")), file=sys.stderr)
-
 log = get_logger(__name__)
 
 

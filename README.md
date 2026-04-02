@@ -62,7 +62,6 @@ graph TD
 | Lab | Containerlab | Multi-vendor virtual topology |
 | Source of truth | hosts.yaml | Per-device automation data |
 | Automation | Nornir + Scrapli | SSH config deployment |
-| Transport (RESTCONF) | restconf.py | IOS XE YANG/JSON — reference implementation, not active in pipeline |
 | Rendering | Jinja2 | Vendor-specific templates |
 | Validation | pyATS + Genie | Pre/post state verification |
 | Drift | DeepDiff | Intended vs actual config comparison |
@@ -143,7 +142,7 @@ Every workflow is idempotent with pre/post validation and automatic rollback.
 
 ## CI/CD Pipeline
 
-Four stages run on every push via GitLab CI/CD, mirrored to GitHub.
+Five stages run on every push via GitLab CI/CD, mirrored to GitHub.
 ```
 build → prevalidation → deploy (manual gate) → postvalidation → remediation (manual gate)
 ```
