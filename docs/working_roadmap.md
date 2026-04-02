@@ -82,18 +82,28 @@ The original name was ambiguous when EOS already had process_eos.j2.
 Renamed to make the vendor split explicit and consistent across the
 template directory.
 
+**Credentials in hosts.yaml (Lab-Only)**
+Credentials are stored in automation/inventory/hosts.yaml for all devices 
+(admin/admin). This is acceptable for a local lab environment with no 
+sensitive data. For production, migrate to HashiCorp Vault or environment 
+variables injected by CI/CD.
+
 ---
 
 ## Ideas backlog
 
 - pyATS learn/diff snapshots — full feature state capture before/after changes
 - Golden config compliance — policy file defines baseline, report deviations
-- Batfish — offline config analysis before deploy, catches routing errors
-  without touching a device
+- Batfish — offline config analysis before deploy, catches routing errors without touching a device
 - SuzieQ — network state query engine, complements pyATS for ad-hoc queries
 - NAPALM — vendor abstraction layer, removes platform if/elif in workflow code
-- HashiCorp Vault — replace .env credential management
 - Terraform — provision the infrastructure the lab runs on
 - Nokia SR Linux node — gNMI-native, cleaner streaming telemetry story
-- Neo4j — graph database for topology when NetBox relationship queries
-  become complex enough to need native graph traversal
+- Neo4j — graph database for topology when NetBox relationship queries  become complex enough to need native graph traversal
+
+**Infrastructure Hardening**
+- Distributed Locking - Prevent concurrent deploys via file-based lock or Redis
+- Pipeline Metrics - Instrument runner.py with Prometheus client for deploy duration/failure rates
+- Negative Testing - Fault injection (kill container mid-deploy, verify rollback)
+- Golden Config Snapshots - store post-validation configs in versioned storage
+- RESTCONF - IOS-XE YANG/JSON workflow alongside existing SSH
