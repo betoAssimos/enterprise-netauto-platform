@@ -7,28 +7,23 @@ decisions, and the ideas backlog. Not a changelog — see git log for that.
 
 ## Current state
 
-Core automation is complete. Full deploy pipeline covers routing, switching,
-and services across all 6 managed devices. CI/CD is green. End-to-end
-host-to-internet traffic verified through NAT on both edge routers. BGP
-intent validation running in postvalidation. Grafana dashboards showing
-live device state via SNMP and gNMI (Arista only).
-
+Core automation complete. CI/CD pipeline running 5 stages: build, prevalidation,
+deploy, postvalidation, remediation. End-to-end connectivity verified and monitored
+via Grafana (SNMP + gNMI). Fault injection demo working — port shutdown detected
+by pyATS connectivity test, remediation stage restores switching domain via
+idempotent portchannel templates. All interfaces back to UP confirmed in Grafana.
 ---
 
 ## Next — in order
 
-1. Continuous background traffic from all hosts for observability PoC
-2. Grafana dashboard review — verify gNMI data, add traffic visibility panels
-3. Fault injection demo — shut port, pipeline detects, manual gate remediates,
-   dashboard shows event and recovery
-4. OSPF intent validation — neighbor state + advertised networks
-5. VRRP intent validation — master/standby state per VLAN per device
-6. MLAG intent validation — domain state, peer-link, member ports
-7. BGP received prefixes — complement to existing advertised check
-8. NTP intent validation — sync state per device against configured server
-9. AI layer — FastMCP + LangChain + Ollama, start with a basic ops agent
-10. NetBox as live SoT — replace hosts.yaml with dynamic inventory from API
-
+1. Grafana dashboard review — verify gNMI data, add traffic visibility panels
+2. OSPF intent validation — neighbor state + advertised networks
+3. VRRP intent validation — master/standby state per VLAN per device
+4. MLAG intent validation — domain state, peer-link, member ports
+5. BGP received prefixes — complement to existing advertised check
+6. NTP intent validation — sync state per device against configured server
+7. AI layer — FastMCP + LangChain + Ollama, start with a basic ops agent
+8. NetBox as live SoT — replace hosts.yaml with dynamic inventory from API
 ---
 
 ## Architecture decisions
@@ -84,16 +79,16 @@ template directory.
 
 ## Ideas backlog
 
-- Integrate intent checks into CI/CD as a dedicated postvalidation job
-  separate from BGP state checks
+- Integrate intent checks into CI/CD as a dedicated postvalidation job separate from BGP state checks
 - pyATS learn/diff snapshots — full feature state capture before/after changes
 - Golden config compliance — policy file defines baseline, report deviations
-- Batfish — offline config analysis before deploy, catches routing errors
-  without touching a device
+- Batfish — offline config analysis before deploy, catches routing errors without touching a device
 - SuzieQ — network state query engine, complements pyATS for ad-hoc queries
 - NAPALM — vendor abstraction layer, removes platform if/elif in workflow code
 - HashiCorp Vault — replace .env credential management
 - Terraform — provision the infrastructure the lab runs on
 - Nokia SR Linux node — gNMI-native, cleaner streaming telemetry story
-- Neo4j — graph database for topology when NetBox relationship queries
-  become complex enough to need native graph traversal
+- Neo4j — graph database for topology when NetBox relationship queries become complex enough to need native graph traversal
+- CI/CD inventory: replace static hosts.yaml with dynamic generation from NetBox API as a build artifact — makes NetBox the live SoT in the pipeline
+- CI/CD deploy stage: split single full-stack job into per-domain jobs (routing, switching, services, security) for better visibility and selective reruns
+- CI/CD postvalidation: add OSPF neighbor checks, interface state validation, VRRP state checks, NTP sync verification
