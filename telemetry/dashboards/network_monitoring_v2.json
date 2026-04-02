@@ -1075,6 +1075,128 @@
                 "title": "Interface Operational Status",
                 "type": "stat"
             }
+            ,
+            {
+                "collapsed": false,
+                "gridPos": {
+                    "h": 1,
+                    "w": 24,
+                    "x": 0,
+                    "y": 73
+                },
+                "id": 200,
+                "panels": [],
+                "title": "📡 Streaming Telemetry (gNMI)",
+                "type": "row"
+            },
+            {
+                "datasource": {
+                    "type": "prometheus",
+                    "uid": "eff45310579c0e"
+                },
+                "fieldConfig": {
+                    "defaults": {
+                        "color": {
+                            "mode": "palette-classic"
+                        },
+                        "custom": {
+                            "drawStyle": "line",
+                            "fillOpacity": 10,
+                            "lineInterpolation": "smooth",
+                            "lineWidth": 2,
+                            "showPoints": "never"
+                        },
+                        "unit": "Bps"
+                    },
+                    "overrides": []
+                },
+                "gridPos": {
+                    "h": 9,
+                    "w": 12,
+                    "x": 0,
+                    "y": 74
+                },
+                "id": 201,
+                "options": {
+                    "legend": {
+                        "calcs": ["mean", "max"],
+                        "displayMode": "table",
+                        "placement": "bottom",
+                        "showLegend": true
+                    },
+                    "tooltip": {
+                        "mode": "multi",
+                        "sort": "desc"
+                    }
+                },
+                "targets": [
+                    {
+                        "datasource": {
+                            "type": "prometheus",
+                            "uid": "eff45310579c0e"
+                        },
+                        "expr": "rate(gnmic_interfaces_interface_state_counters_in_octets{interface_name!~\"Management.*|Loopback.*\"}[1m])",
+                        "legendFormat": "{{ source }} – {{ interface_name }}",
+                        "refId": "A"
+                    }
+                ],
+                "title": "gNMI Inbound Traffic by Interface (Bytes/s)",
+                "type": "timeseries"
+            },
+            {
+                "datasource": {
+                    "type": "prometheus",
+                    "uid": "eff45310579c0e"
+                },
+                "fieldConfig": {
+                    "defaults": {
+                        "color": {
+                            "mode": "palette-classic"
+                        },
+                        "custom": {
+                            "drawStyle": "line",
+                            "fillOpacity": 10,
+                            "lineInterpolation": "smooth",
+                            "lineWidth": 2,
+                            "showPoints": "never"
+                        },
+                        "unit": "Bps"
+                    },
+                    "overrides": []
+                },
+                "gridPos": {
+                    "h": 9,
+                    "w": 12,
+                    "x": 12,
+                    "y": 74
+                },
+                "id": 202,
+                "options": {
+                    "legend": {
+                        "calcs": ["mean", "max"],
+                        "displayMode": "table",
+                        "placement": "bottom",
+                        "showLegend": true
+                    },
+                    "tooltip": {
+                        "mode": "multi",
+                        "sort": "desc"
+                    }
+                },
+                "targets": [
+                    {
+                        "datasource": {
+                            "type": "prometheus",
+                            "uid": "eff45310579c0e"
+                        },
+                        "expr": "rate(gnmic_interfaces_interface_state_counters_out_octets{interface_name!~\"Management.*|Loopback.*\"}[1m])",
+                        "legendFormat": "{{ source }} – {{ interface_name }}",
+                        "refId": "A"
+                    }
+                ],
+                "title": "gNMI Outbound Traffic by Interface (Bytes/s)",
+                "type": "timeseries"
+            }
         ],
         "preload": false,
         "refresh": "30s",

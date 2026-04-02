@@ -41,6 +41,18 @@ services:
       - netauto-mgmt
     restart: unless-stopped
 
+  gnmic:
+      image: ghcr.io/karimra/gnmic:latest
+      container_name: gnmic
+      volumes:
+        - ./gnmic.yml:/app/gnmic.yml
+      command: subscribe --config /app/gnmic.yml
+      ports:
+        - "9804:9804"
+      networks:
+        - netauto-mgmt
+      restart: unless-stopped
+
 volumes:
   prometheus_data:
   grafana_data:
