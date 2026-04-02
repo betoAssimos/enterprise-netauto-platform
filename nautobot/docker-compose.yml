@@ -1,7 +1,6 @@
 # Nautobot — alternative SoT for future evaluation.
 # Not active in the current stack. NetBox is the active SoT.
 # To start: docker compose up -d
-version: '3.8'
 
 services:
   postgres:
