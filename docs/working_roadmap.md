@@ -22,7 +22,7 @@ Telemetry stack fully containerized: Prometheus, Grafana, SNMP exporter, gnmic.
 3. MLAG intent validation — domain state, peer-link, member ports
 4. BGP received prefixes — complement to existing advertised check
 5. NTP intent validation — sync state per device against configured server
-6. AI layer — FastMCP + LangChain + Ollama, start with a basic ops agent
+6. AI layer — FastMCP server + LangChain + Ollama, read-only network queries first
 7. NetBox as live SoT — replace hosts.yaml with dynamic inventory from API
 ---
 
@@ -87,6 +87,17 @@ Credentials are stored in automation/inventory/hosts.yaml for all devices
 (admin/admin). This is acceptable for a local lab environment with no 
 sensitive data. For production, migrate to HashiCorp Vault or environment 
 variables injected by CI/CD.
+
+**AI Layer — FastMCP construction vs. NetClaw adoption**
+Building custom FastMCP server rather than using NetClaw (automateyournetwork/netclaw)
+to demonstrate MCP construction competence (AUTOCOR 4.3). NetClaw provides a 
+production-ready reference implementation with 82+ skills, but constructing the 
+server from scratch ensures deeper understanding of the Model Context Protocol 
+and tool exposure patterns. Architecture: FastMCP server exposing pyATS-based 
+network tools, LangChain for agent orchestration, Ollama for local LLM inference, 
+integration with existing hosts.yaml inventory. Skills will mirror current 
+validation capabilities (BGP state, OSPF neighbors, drift detection) before 
+adding generative features.
 
 ---
 
