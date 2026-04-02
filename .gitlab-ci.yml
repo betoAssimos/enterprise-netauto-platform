@@ -8,6 +8,7 @@
 #   prevalidation  → pyATS baseline capture (what the network looks like NOW)
 #   deploy         → push all config via Nornir/Scrapli (manual gate)
 #   postvalidation → pyATS regression check + end-to-end connectivity
+#   remediation    → targeted switching restore (manual gate, on fault)
 #
 # Runner: wsl-lab-runner (shell executor, tags: wsl, lab)
 # The runner has direct L3 access to the Containerlab network (172.20.20.0/24)
@@ -18,30 +19,12 @@
 #   NETBOX_TOKEN     nbt_<key>.<secret>
 #   DEVICE_USERNAME  admin
 #   DEVICE_PASSWORD  admin
-#
-# 350-901 objectives demonstrated:
-#   1.x  Python automation  — Nornir, Scrapli, Jinja2 template rendering
-#   2.x  IaC / CI/CD        — GitLab pipeline, SoT-driven inventory, secrets mgmt
-#   3.x  Operations         — pyATS pre/post validation, regression detection
-#
-# Key design notes for future work:
-#   - Inventory is currently static (hosts.yaml committed to repo).
-#     Phase 2: replace with dynamic generation from NetBox via netbox_inventory.py.
-#     This will add a build step that queries NetBox API and produces hosts.yaml
-#     as a pipeline artifact, making NetBox the true SoT (exam topic 2.6).
-#   - Deploy stage uses a single job with all workflows in sequence.
-#     Future: split into per-domain jobs (routing, switching, services, security)
-#     for better GitLab UI visibility and selective reruns.
-#   - Pre/post validation currently covers BGP only.
-#     Future: add OSPF neighbor checks, interface state validation,
-#     VRRP state checks, and syslog delivery verification.
 # ============================================================================
 
 variables:
   VENV_PYTHON: "/home/beto/enterprise-netauto-platform/venv/bin/python"
   VENV_PYATS:  "/home/beto/enterprise-netauto-platform/venv/bin/pyats"
 
-# -- Default settings applied to all jobs ------------------------------------
 default:
   tags:
     - wsl
@@ -50,17 +33,15 @@ default:
     - source /home/beto/enterprise-netauto-platform/venv/bin/activate
     - set -a && source /home/beto/enterprise-netauto-platform/.env && set +a
 
-# -- Stage definitions -------------------------------------------------------
 stages:
   - build
   - prevalidation
   - deploy
   - postvalidation
+  - remediation
 
 # ============================================================================
 # STAGE 1 -- BUILD
-# Validate environment health and inventory.
-# Failing here aborts the pipeline before touching any device.
 # ============================================================================
 
 build:validate-environment:
@@ -90,8 +71,7 @@ build:validate-inventory:
 
 # ============================================================================
 # STAGE 2 -- PREVALIDATION
-# Capture the current network state before making any changes.
-# allow_failure: true handles the first-deploy scenario where BGP does not
+# allow_failure: true handles first-deploy scenario where BGP does not
 # exist yet — pipeline continues to deploy rather than aborting.
 # ============================================================================
 
@@ -111,9 +91,8 @@ prevalidation:bgp-baseline:
 
 # ============================================================================
 # STAGE 3 -- DEPLOY
-# Push all configuration to devices in dependency order.
-# Manual gate — requires clicking "play" in GitLab UI before execution.
-# All workflows are idempotent — re-running produces no unintended changes.
+# Manual gate — requires clicking play in GitLab UI before execution.
+# All workflows are idempotent — safe to re-run.
 # ============================================================================
 
 deploy:full-stack:
@@ -122,38 +101,24 @@ deploy:full-stack:
   when: manual
   script:
     - echo "==> Deploying full configuration stack"
-    - echo "--- Layer 3 interfaces ---"
     - $VENV_PYTHON automation/runner.py deploy interfaces
-    - echo "--- OSPF ---"
     - $VENV_PYTHON automation/runner.py deploy ospf
-    - echo "--- NAT ---"
     - $VENV_PYTHON automation/runner.py deploy nat
-    - echo "--- BGP ---"
     - $VENV_PYTHON automation/runner.py deploy bgp
-    - echo "--- BGP routing policy ---"
     - $VENV_PYTHON automation/runner.py deploy bgp-policy
-    - echo "--- VLANs ---"
     - $VENV_PYTHON automation/runner.py deploy vlans
-    - echo "--- Port-channels ---"
     - $VENV_PYTHON automation/runner.py deploy portchannels
-    - echo "--- MLAG ---"
     - $VENV_PYTHON automation/runner.py deploy mlag
-    - echo "--- VRRP ---"
     - $VENV_PYTHON automation/runner.py deploy vrrp
-    - echo "--- NTP ---"
     - $VENV_PYTHON automation/runner.py deploy ntp
-    - echo "--- Syslog ---"
     - $VENV_PYTHON automation/runner.py deploy syslog
-    - echo "--- SNMP ---"
     - $VENV_PYTHON automation/runner.py deploy snmp
-    - echo "--- SSH hardening ---"
     - $VENV_PYTHON automation/runner.py deploy ssh
     - echo "==> Full stack deployment complete"
 
 # ============================================================================
 # STAGE 4 -- POSTVALIDATION
-# Hard gate — pipeline fails if BGP sessions are not established after deploy.
-# Also verifies end-to-end data plane connectivity across VLANs.
+# Hard gate — pipeline fails if any check does not pass.
 # ============================================================================
 
 postvalidation:bgp-verify:
@@ -186,11 +151,41 @@ postvalidation:connectivity:
   stage: postvalidation
   needs: [deploy:full-stack]
   script:
-    - echo "==> Verifying end-to-end connectivity across VLANs"
-    - echo "--- VLAN 10 to VLAN 20 ---"
-    - docker exec clab-enterprise-netauto-lab-host-01 ping -c 3 -W 2 10.20.20.10 || (echo "FAILED — host-01 cannot reach host-02" && exit 1)
-    - echo "--- VLAN 20 to VLAN 10 ---"
-    - docker exec clab-enterprise-netauto-lab-host-02 ping -c 3 -W 2 10.10.10.10 || (echo "FAILED — host-02 cannot reach host-01" && exit 1)
-    - echo "--- VLAN 10 to svc-01 ---"
-    - docker exec clab-enterprise-netauto-lab-host-01 ping -c 3 -W 2 10.20.20.100 || (echo "FAILED — host-01 cannot reach svc-01" && exit 1)
-    - echo "==> All connectivity checks passed"
+    - echo "==> Running pyATS connectivity validation"
+    - $VENV_PYATS run job tests/postcheck/test_connectivity.py --testbed tests/testbed.yaml 2>&1 | tee connectivity.log
+    - grep -E "Result\s*:\s*PASSED" connectivity.log || (echo "CONNECTIVITY CHECK FAILED — data plane unreachable" && exit 1)
+  artifacts:
+    paths:
+      - connectivity.log
+    expire_in: 30 days
+    when: always
+
+# ============================================================================
+# STAGE 5 -- REMEDIATION
+# Manual gate — triggered after a postvalidation failure or fault event.
+# Redeploys the switching domain and re-validates connectivity.
+# Idempotent — safe to trigger multiple times.
+# ============================================================================
+
+remediation:switching-restore:
+  stage: remediation
+  when: manual
+  script:
+    - echo "==> Remediation triggered — restoring switching domain"
+    - echo "--- VLANs ---"
+    - $VENV_PYTHON automation/runner.py deploy vlans
+    - echo "--- Port-channels ---"
+    - $VENV_PYTHON automation/runner.py deploy portchannels
+    - echo "--- MLAG ---"
+    - $VENV_PYTHON automation/runner.py deploy mlag
+    - echo "--- VRRP ---"
+    - $VENV_PYTHON automation/runner.py deploy vrrp
+    - echo "==> Switching domain restored — running connectivity verification"
+    - $VENV_PYATS run job tests/postcheck/test_connectivity.py --testbed tests/testbed.yaml 2>&1 | tee remediation_connectivity.log
+    - grep -E "Result\s*:\s*PASSED" remediation_connectivity.log || (echo "REMEDIATION FAILED — connectivity still broken after switching restore" && exit 1)
+    - echo "==> Remediation complete — connectivity verified"
+  artifacts:
+    paths:
+      - remediation_connectivity.log
+    expire_in: 30 days
+    when: always

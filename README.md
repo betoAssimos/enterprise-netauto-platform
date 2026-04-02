@@ -144,14 +144,14 @@ Every workflow is idempotent with pre/post validation and automatic rollback.
 
 Four stages run on every push via GitLab CI/CD, mirrored to GitHub.
 ```
-build → prevalidation → deploy (manual gate) → postvalidation
+build → prevalidation → deploy (manual gate) → postvalidation → remediation (manual gate)
 ```
 
 - **build** — environment, dependencies, device reachability, inventory
 - **prevalidation** — pyATS BGP baseline before touching devices
 - **deploy** — full stack in dependency order, requires manual approval
-- **postvalidation** — BGP state verification, BGP intent validation,
-  end-to-end connectivity checks
+- **postvalidation** — BGP state verification, BGP intent validation, end-to-end connectivity checks
+- **remediation** — switching domain restore with connectivity recheck (manual gate)
 
 ---
 
@@ -209,7 +209,7 @@ python automation/runner.py deploy ssh
 ## Validation
 ```bash
 # Connectivity and inventory
-python automation/runner.py connect test
+pyats run job tests/postcheck/test_connectivity.py --testbed tests/testbed.yaml
 python automation/runner.py validate inventory
 python automation/runner.py validate netbox
 
