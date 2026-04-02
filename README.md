@@ -62,13 +62,14 @@ graph TD
 | Lab | Containerlab | Multi-vendor virtual topology |
 | Source of truth | hosts.yaml | Per-device automation data |
 | Automation | Nornir + Scrapli | SSH config deployment |
+| Transport (RESTCONF) | restconf.py | IOS XE YANG/JSON — reference implementation, not active in pipeline |
 | Rendering | Jinja2 | Vendor-specific templates |
 | Validation | pyATS + Genie | Pre/post state verification |
 | Drift | DeepDiff | Intended vs actual config comparison |
 | Rollback | rollback.py | Config restore on post-check failure |
 | Telemetry | Prometheus + Grafana | Metrics and dashboards |
 | Observability | SNMP + gNMI | Device metrics (gNMI: Arista only) |
-| CI/CD | GitLab | 4-stage automated pipeline |
+| CI/CD | GitLab | 5-stage automated pipeline with remediation |
 | Linux hosts | Ansible | NTP server, syslog receiver on svc-01 |
 
 ---

@@ -1,21 +1,29 @@
 # Telemetry Stack
 
-This platform uses two monitoring approaches:
+Two complementary monitoring approaches running as Docker Compose services.
 
-1. SNMP monitoring
-2. Streaming telemetry (gNMI)
-
-Architecture:
-
+## Architecture
+```
 Devices
- ├─ SNMP → SNMP Exporter → Prometheus
- └─ gNMI → gNMIc → Prometheus
+ ├─ SNMP (all 6 managed devices) → snmp-exporter → Prometheus
+ └─ gNMI (4 Arista switches only) → gnmic → Prometheus
 
 Prometheus → Grafana dashboards
+```
 
-Services:
+## Services
 
-- Prometheus
-- Grafana
-- SNMP Exporter
-- gNMIc
+| Service | Image | Port |
+|---------|-------|------|
+| Prometheus | prom/prometheus | 9090 |
+| Grafana | grafana/grafana | 3000 |
+| SNMP Exporter | prom/snmp-exporter | 9116 |
+| gnmic | ghcr.io/karimra/gnmic | 9804 |
+
+## Notes
+
+- gNMI is limited to Arista cEOS nodes. Cisco c8000v does not support gNMI
+  reliably in this lab image.
+- gnmic runs as a Docker container. A systemd service was previously used
+  but replaced for consistency with the rest of the stack.
+- Grafana dashboards are version controlled in `dashboards/`.
