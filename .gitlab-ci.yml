@@ -160,6 +160,71 @@ postvalidation:connectivity:
     expire_in: 30 days
     when: always
 
+postvalidation:bgp-received-intent:
+  stage: postvalidation
+  needs: [deploy:full-stack]
+  script:
+    - echo "==> Running BGP received prefix intent validation"
+    - $VENV_PYATS run job tests/postcheck/test_bgp_received_intent.py --testbed tests/testbed.yaml 2>&1 | tee bgp_received_intent.log
+    - grep -E "Result\s*:\s*PASSED" bgp_received_intent.log || (echo "INTENT CHECK FAILED — received prefixes do not match intent" && exit 1)
+  artifacts:
+    paths:
+      - bgp_received_intent.log
+    expire_in: 30 days
+    when: always
+
+postvalidation:ospf-intent:
+  stage: postvalidation
+  needs: [deploy:full-stack]
+  script:
+    - echo "==> Running OSPF intent validation"
+    - $VENV_PYATS run job tests/postcheck/test_ospf_intent.py --testbed tests/testbed.yaml 2>&1 | tee ospf_intent.log
+    - grep -E "Result\s*:\s*PASSED" ospf_intent.log || (echo "INTENT CHECK FAILED — OSPF neighbor state or route convergence mismatch" && exit 1)
+  artifacts:
+    paths:
+      - ospf_intent.log
+    expire_in: 30 days
+    when: always
+
+postvalidation:vrrp-intent:
+  stage: postvalidation
+  needs: [deploy:full-stack]
+  script:
+    - echo "==> Running VRRP intent validation"
+    - $VENV_PYATS run job tests/postcheck/test_vrrp_intent.py --testbed tests/testbed.yaml 2>&1 | tee vrrp_intent.log
+    - grep -E "Result\s*:\s*PASSED" vrrp_intent.log || (echo "INTENT CHECK FAILED — VRRP state or virtual IP mismatch" && exit 1)
+  artifacts:
+    paths:
+      - vrrp_intent.log
+    expire_in: 30 days
+    when: always
+
+postvalidation:mlag-intent:
+  stage: postvalidation
+  needs: [deploy:full-stack]
+  script:
+    - echo "==> Running MLAG intent validation"
+    - $VENV_PYATS run job tests/postcheck/test_mlag_intent.py --testbed tests/testbed.yaml 2>&1 | tee mlag_intent.log
+    - grep -E "Result\s*:\s*PASSED" mlag_intent.log || (echo "INTENT CHECK FAILED — MLAG domain state or interface mismatch" && exit 1)
+  artifacts:
+    paths:
+      - mlag_intent.log
+    expire_in: 30 days
+    when: always
+
+postvalidation:ntp-intent:
+  stage: postvalidation
+  needs: [deploy:full-stack]
+  script:
+    - echo "==> Running NTP intent validation"
+    - $VENV_PYATS run job tests/postcheck/test_ntp_intent.py --testbed tests/testbed.yaml 2>&1 | tee ntp_intent.log
+    - grep -E "Result\s*:\s*PASSED" ntp_intent.log || (echo "INTENT CHECK FAILED — NTP sync state or server mismatch" && exit 1)
+  artifacts:
+    paths:
+      - ntp_intent.log
+    expire_in: 30 days
+    when: always
+
 # ============================================================================
 # STAGE 5 -- REMEDIATION
 # Manual gate — triggered after a postvalidation failure or fault event.

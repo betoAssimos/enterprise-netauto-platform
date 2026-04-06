@@ -49,6 +49,16 @@ def _init_nornir() -> object:
         logging={"enabled": False},
     )
 
+def _get_bgp_device_names(nr) -> list:
+    """
+    Derive edge router names from inventory.
+    Filters by role — no device names hardcoded.
+    """
+    edge_routers = nr.filter(
+        filter_func=lambda h: h.data.get("role") == "edge-router"
+    )
+    return list(edge_routers.inventory.hosts.keys())
+
 
 def _build_intent_from_inventory(nr) -> dict:
     """
@@ -117,10 +127,11 @@ class CommonSetup(aetest.CommonSetup):
     def build_intent(self):
         nr = _init_nornir()
         self.parent.parameters["intent"] = _build_intent_from_inventory(nr)
+        self.parent.parameters["bgp_device_names"] = _get_bgp_device_names(nr)
 
     @aetest.subsection
-    def connect_to_devices(self, testbed):
-        for device_name in ["rtr-01", "rtr-02"]:
+    def connect_to_devices(self, testbed, bgp_device_names):
+        for device_name in bgp_device_names:
             device = testbed.devices[device_name]
             device.credentials.default.username = os.environ.get("DEVICE_USERNAME")
             device.credentials.default.password = os.environ.get("DEVICE_PASSWORD")
@@ -190,8 +201,8 @@ class TestBGPIntent(aetest.Testcase):
 class CommonCleanup(aetest.CommonCleanup):
 
     @aetest.subsection
-    def disconnect_from_devices(self, testbed):
-        for device_name in ["rtr-01", "rtr-02"]:
+    def disconnect_from_devices(self, testbed, bgp_device_names):
+        for device_name in bgp_device_names:
             device = testbed.devices[device_name]
             if device.is_connected():
                 device.disconnect()
