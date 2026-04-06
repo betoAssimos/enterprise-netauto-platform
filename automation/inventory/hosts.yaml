@@ -36,6 +36,8 @@ rtr-01:
           remote_as: 65002
           next_hop_self: true
           route_map_out: EBGP-OUT
+          received_prefixes:
+            - 2.2.2.2/32
       bgp_networks:
         - prefix: 1.1.1.1
           mask: 255.255.255.255
@@ -183,6 +185,8 @@ rtr-02:
           remote_as: 65001
           next_hop_self: true
           route_map_out: EBGP-OUT
+          received_prefixes:
+            - 1.1.1.1/32    
       bgp_networks:
         - prefix: 2.2.2.2
           mask: 255.255.255.255

@@ -1,15 +1,13 @@
 # automation/workflows/routing/bgp_intent_builder.py
 #
-# BGP Intent Builder — derives intended advertised prefixes from inventory data.
+# BGP Intent Builder — derives BGP intent from inventory data.
+#
+# Functions:
+#   build_bgp_intent          — advertised prefixes via route-map → prefix-list chain
+#   build_bgp_received_intent — received prefixes per neighbor, explicit in inventory
 #
 # Input:  Nornir Task (host data sourced from hosts.yaml)
-# Output: dict with advertised_prefixes list per device
-#
-# Intent is derived from the policy chain:
-#   neighbor.route_map_out → route-map entries → prefix-list → permit entries
-#
-# This module contains NO rendering logic. It only reads inventory data
-# and produces structured intent. Keep it separate from context builders.
+# This module contains NO rendering logic. Keep it separate from context builders.
 
 
 from __future__ import annotations
@@ -79,3 +77,39 @@ def build_bgp_intent(task: Task) -> dict:
                     })
 
     return {"advertised_prefixes": advertised_prefixes}
+
+def build_bgp_received_intent(task: Task) -> dict:
+    """
+    Derive BGP received prefix intent for a single device.
+
+    Reads received_prefixes from each bgp_neighbors entry and returns
+    the expected prefixes per neighbor IP.
+
+    Returns:
+        {
+            "expected_received": [
+                {
+                    "neighbor_ip": "10.0.0.2",
+                    "prefixes": ["2.2.2.2/32"]
+                }
+            ]
+        }
+
+    Neighbors without received_prefixes defined are skipped.
+    Returns empty list if no neighbors have received_prefixes.
+    """
+    cf = task.host.data.get("custom_fields", {})
+    neighbors = cf.get("bgp_neighbors", [])
+
+    expected_received = []
+
+    for neighbor in neighbors:
+        received = neighbor.get("received_prefixes", [])
+        if not received:
+            continue
+        expected_received.append({
+            "neighbor_ip": neighbor["ip"],
+            "prefixes": received,
+        })
+
+    return {"expected_received": expected_received}
