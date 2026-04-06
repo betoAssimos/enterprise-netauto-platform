@@ -417,14 +417,17 @@ core-sw-01:
           group: 10
           priority: 110
           virtual_ip: 10.10.10.1
+          expected_state: Master
         - vlan: 20
           group: 20
           priority: 110
           virtual_ip: 10.20.20.1
+          expected_state: Master
         - vlan: 99
           group: 99
           priority: 110
           virtual_ip: 10.99.99.1
+          expected_state: Master
 
       # MLAG port-channels toward access switches
       mlag_portchannels:
@@ -572,14 +575,17 @@ core-sw-02:
           group: 10
           priority: 90
           virtual_ip: 10.10.10.1
+          expected_state: Backup
         - vlan: 20
           group: 20
           priority: 90
           virtual_ip: 10.20.20.1
+          expected_state: Backup
         - vlan: 99
           group: 99
           priority: 90
           virtual_ip: 10.99.99.1
+          expected_state: Backup
 
       # MLAG port-channels toward access switches
       mlag_portchannels:
