@@ -108,8 +108,7 @@ tracked in hosts.yaml.
 
 **gNMI limited to Arista**
 Cisco c8000v in this lab does not support gNMI reliably. SNMP covers
-all 6 devices. gNMI provides streaming telemetry from core-sw-01 and
-core-sw-02 only. This is a lab constraint, not a design choice.
+all 6 devices. gNMI provides streaming telemetry from arista switches only. This is a lab constraint, not a design choice.
 
 **gnmic containerization**
 gnmic was originally running as a systemd service on the WSL host. Moved to
