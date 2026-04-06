@@ -66,8 +66,18 @@ rtr-01:
         - network: 10.1.0.4
           wildcard: 0.0.0.3
           area: 0
-
       ospf_default_originate: true
+      ospf_neighbors:
+        - neighbor_id: 3.3.3.3
+          neighbor_ip: 10.1.0.2
+          expected_state: Full
+        - neighbor_id: 4.4.4.4
+          neighbor_ip: 10.1.0.6
+          expected_state: Full
+        - neighbor_id: 2.2.2.2
+          neighbor_ip: 10.0.0.2
+          expected_state: Full
+          ospf_route_expected: false
 
       static_routes:
         - prefix: 0.0.0.0
@@ -203,8 +213,18 @@ rtr-02:
         - network: 10.2.0.4
           wildcard: 0.0.0.3
           area: 0
-
       ospf_default_originate: true
+      ospf_neighbors:
+        - neighbor_id: 3.3.3.3
+          neighbor_ip: 10.2.0.2
+          expected_state: Full
+        - neighbor_id: 4.4.4.4
+          neighbor_ip: 10.2.0.6
+          expected_state: Full
+        - neighbor_id: 1.1.1.1
+          neighbor_ip: 10.0.0.1
+          expected_state: Full
+          ospf_route_expected: false
 
       static_routes:
         - prefix: 0.0.0.0
@@ -322,6 +342,13 @@ core-sw-01:
         - network: 10.99.99.0
           wildcard: 0.0.0.255
           area: 0
+      ospf_neighbors:
+        - neighbor_id: 1.1.1.1
+          neighbor_ip: 10.1.0.1
+          expected_state: Full
+        - neighbor_id: 2.2.2.2
+          neighbor_ip: 10.2.0.1
+          expected_state: Full
 
       static_routes:
         - prefix: 203.0.113.0/30
@@ -470,6 +497,13 @@ core-sw-02:
         - network: 10.99.99.0
           wildcard: 0.0.0.255
           area: 0
+      ospf_neighbors:
+        - neighbor_id: 1.1.1.1
+          neighbor_ip: 10.1.0.5
+          expected_state: Full
+        - neighbor_id: 2.2.2.2
+          neighbor_ip: 10.2.0.5
+          expected_state: Full
 
       static_routes:
         - prefix: 203.0.113.0/30
