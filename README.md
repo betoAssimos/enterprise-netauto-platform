@@ -63,7 +63,7 @@ graph TD
 | Source of truth | hosts.yaml | Per-device automation data |
 | Automation | Nornir + Scrapli | SSH config deployment |
 | Rendering | Jinja2 | Vendor-specific templates |
-| Validation | pyATS + Genie | Pre/post state verification |
+| Validation | pyATS + Genie | Pre/post state verification + intent validation |
 | Drift | DeepDiff | Intended vs actual config comparison |
 | Rollback | rollback.py | Config restore on post-check failure |
 | Telemetry | Prometheus + Grafana | Metrics and dashboards |
@@ -150,7 +150,7 @@ build → prevalidation → deploy (manual gate) → postvalidation → remediat
 - **build** — environment, dependencies, device reachability, inventory
 - **prevalidation** — pyATS BGP baseline before touching devices
 - **deploy** — full stack in dependency order, requires manual approval
-- **postvalidation** — BGP state verification, BGP intent validation, end-to-end connectivity checks
+- **postvalidation** — BGP state, intent validation, end-to-end connectivity
 - **remediation** — switching domain restore with connectivity recheck (manual gate)
 
 ---
@@ -207,24 +207,49 @@ python automation/runner.py deploy ssh
 ---
 
 ## Validation
+
+### Connectivity and inventory
 ```bash
-# Connectivity and inventory
 pyats run job tests/postcheck/test_connectivity.py --testbed tests/testbed.yaml
 python automation/runner.py validate inventory
 python automation/runner.py validate netbox
+```
 
-# BGP state
+### BGP state
+```bash
 pyats run job tests/precheck/test_bgp.py --testbed tests/testbed.yaml
 pyats run job tests/postcheck/test_bgp.py --testbed tests/testbed.yaml
+```
 
-# BGP intent — advertised prefix compliance
+### Intent validation
+```bash
+# BGP — advertised prefix policy compliance
 pyats run job tests/postcheck/test_bgp_intent.py --testbed tests/testbed.yaml
 
-# End-to-end connectivity
+# BGP — received prefix compliance
+pyats run job tests/postcheck/test_bgp_received_intent.py --testbed tests/testbed.yaml
+
+# OSPF — neighbor FULL state + loopback convergence
+pyats run job tests/postcheck/test_ospf_intent.py --testbed tests/testbed.yaml
+
+# VRRP — Master/Backup state + virtual IP
+pyats run job tests/postcheck/test_vrrp_intent.py --testbed tests/testbed.yaml
+
+# MLAG — domain state + interface active-full
+pyats run job tests/postcheck/test_mlag_intent.py --testbed tests/testbed.yaml
+
+# NTP — sync state + server match
+pyats run job tests/postcheck/test_ntp_intent.py --testbed tests/testbed.yaml
+```
+
+### End-to-end connectivity
+```bash
 docker exec clab-enterprise-netauto-lab-host-01 ping -c 3 10.20.20.10
 docker exec clab-enterprise-netauto-lab-host-01 ping -c 3 203.0.113.1
+```
 
-# Drift detection
+### Drift detection
+```bash
 python automation/runner.py drift bgp
 ```
 

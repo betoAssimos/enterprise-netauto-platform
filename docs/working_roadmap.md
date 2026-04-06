@@ -13,17 +13,23 @@ via Grafana. Fault injection demo working — port shutdown detected by pyATS
 connectivity test, remediation stage restores switching domain via idempotent
 port-channel templates. All 4 Arista switches reporting via gNMI (containerized).
 Telemetry stack fully containerized: Prometheus, Grafana, SNMP exporter, gnmic.
+
+Intent validation suite complete. All tests pass at 100%:
+- OSPF: neighbor FULL state + loopback /32 convergence (4 devices)
+- VRRP: Master/Backup state + virtual IP per group (2 core switches)
+- MLAG: domain Active/Connected/peer-link Up + interfaces active-full
+- BGP received prefixes: complement to existing advertised check
+- NTP: sync state + server match (6 devices)
+- BGP advertised prefixes: policy chain validation (pre-existing)
+- End-to-end connectivity (pre-existing)
+
 ---
 
 ## Next — in order
 
-1. OSPF intent validation — neighbor state + advertised networks
-2. VRRP intent validation — master/standby state per VLAN per device
-3. MLAG intent validation — domain state, peer-link, member ports
-4. BGP received prefixes — complement to existing advertised check
-5. NTP intent validation — sync state per device against configured server
-6. AI layer — FastMCP server + LangChain + Ollama, read-only network queries first
-7. NetBox as live SoT — replace hosts.yaml with dynamic inventory from API
+1. AI layer — FastMCP server + LangChain + Ollama, read-only network queries first
+2. NetBox as live SoT — replace hosts.yaml with dynamic inventory from API
+
 ---
 
 ## Architecture decisions
@@ -48,6 +54,41 @@ BGP context builder. Context builders produce data for rendering.
 Intent builders produce data for validation. Mixing them would couple
 rendering logic with validation logic and make both harder to test
 independently.
+
+**Multiple intent functions per module when same domain**
+`build_bgp_received_intent()` lives in `bgp_intent_builder.py` alongside
+`build_bgp_intent()`. Same domain = same module. Splitting into separate
+files would fragment cohesive logic without architectural benefit.
+
+**Device names never hardcoded in test files**
+All test files derive the device list from inventory by role filter via
+Nornir. Hardcoding names couples tests to topology and violates the
+single source of truth principle. The original BGP test was identified
+as tech debt for this reason.
+
+**Genie parser availability must be verified before writing test logic**
+EOS has no Genie parsers for OSPF, MLAG, VRRP, or NTP in the current
+Genie version. IOS XE has parsers for all of these. Pattern: detect
+device.os == "iosxe" and use Genie; else use device.execute() + regex.
+Always verify with os.walk on the genie.libs.parser directory before
+assuming a parser exists.
+
+**ospf_route_expected: false on eBGP peering neighbors**
+rtr-01 and rtr-02 peer over 10.0.0.0/30. Their loopbacks (1.1.1.1/32,
+2.2.2.2/32) are learned via eBGP (AD 20), not OSPF (AD 110). The OSPF
+neighbor state check still runs — both are FULL. Only the route presence
+check is skipped via the flag. Without this, the test would incorrectly
+fail because the route is reachable but not in the OSPF RIB.
+
+**BGP received prefixes use installed routes, not soft-reconfiguration**
+`show bgp ipv4 unicast neighbors X routes` returns routes accepted and
+installed from a neighbor without requiring `soft-reconfiguration inbound`.
+This avoids unnecessary config changes just for observability.
+
+**EOS NTP spelling normalization**
+EOS reports "synchronised" (British spelling). IOS XE reports "synchronized".
+Normalize both before string comparison — do not add a platform branch just
+for a spelling difference.
 
 **Nornir for network devices, Ansible for Linux hosts**
 These work at different layers. Nornir with Scrapli handles SSH-based
@@ -83,20 +124,20 @@ Renamed to make the vendor split explicit and consistent across the
 template directory.
 
 **Credentials in hosts.yaml (Lab-Only)**
-Credentials are stored in automation/inventory/hosts.yaml for all devices 
-(admin/admin). This is acceptable for a local lab environment with no 
-sensitive data. For production, migrate to HashiCorp Vault or environment 
+Credentials are stored in automation/inventory/hosts.yaml for all devices
+(admin/admin). This is acceptable for a local lab environment with no
+sensitive data. For production, migrate to HashiCorp Vault or environment
 variables injected by CI/CD.
 
 **AI Layer — FastMCP construction vs. NetClaw adoption**
 Building custom FastMCP server rather than using NetClaw (automateyournetwork/netclaw)
-to demonstrate MCP construction competence (AUTOCOR 4.3). NetClaw provides a 
-production-ready reference implementation with 82+ skills, but constructing the 
-server from scratch ensures deeper understanding of the Model Context Protocol 
-and tool exposure patterns. Architecture: FastMCP server exposing pyATS-based 
-network tools, LangChain for agent orchestration, Ollama for local LLM inference, 
-integration with existing hosts.yaml inventory. Skills will mirror current 
-validation capabilities (BGP state, OSPF neighbors, drift detection) before 
+to demonstrate MCP construction competence (AUTOCOR 4.3). NetClaw provides a
+production-ready reference implementation with 82+ skills, but constructing the
+server from scratch ensures deeper understanding of the Model Context Protocol
+and tool exposure patterns. Architecture: FastMCP server exposing pyATS-based
+network tools, LangChain for agent orchestration, Ollama for local LLM inference,
+integration with existing hosts.yaml inventory. Skills will mirror current
+validation capabilities (BGP state, OSPF neighbors, drift detection) before
 adding generative features.
 
 ---
@@ -110,11 +151,11 @@ adding generative features.
 - NAPALM — vendor abstraction layer, removes platform if/elif in workflow code
 - Terraform — provision the infrastructure the lab runs on
 - Nokia SR Linux node — gNMI-native, cleaner streaming telemetry story
-- Neo4j — graph database for topology when NetBox relationship queries  become complex enough to need native graph traversal
+- Neo4j — graph database for topology when NetBox relationship queries become complex enough to need native graph traversal
 
 **Infrastructure Hardening**
-- Distributed Locking - Prevent concurrent deploys via file-based lock or Redis
-- Pipeline Metrics - Instrument runner.py with Prometheus client for deploy duration/failure rates
-- Negative Testing - Fault injection (kill container mid-deploy, verify rollback)
-- Golden Config Snapshots - store post-validation configs in versioned storage
-- RESTCONF - IOS-XE YANG/JSON workflow alongside existing SSH
+- Distributed Locking — prevent concurrent deploys via file-based lock or Redis
+- Pipeline Metrics — instrument runner.py with Prometheus client for deploy duration/failure rates
+- Negative Testing — fault injection (kill container mid-deploy, verify rollback)
+- Golden Config Snapshots — store post-validation configs in versioned storage
+- RESTCONF — IOS-XE YANG/JSON workflow alongside existing SSH
