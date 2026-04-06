@@ -89,6 +89,34 @@ prevalidation:bgp-baseline:
     when: always
   allow_failure: true
 
+prevalidation:ospf-baseline:
+  stage: prevalidation
+  needs: [build:validate-inventory]
+  script:
+    - echo "==> Running pyATS OSPF pre-check"
+    - $VENV_PYATS run job tests/precheck/test_ospf.py --testbed tests/testbed.yaml 2>&1 | tee ospf_precheck.log
+    - grep -E "Result\s*:\s*(PASSED|FAILED|ERRORED)" ospf_precheck.log && echo "OSPF pre-check result captured"
+  artifacts:
+    paths:
+      - ospf_precheck.log
+    expire_in: 7 days
+    when: always
+  allow_failure: true
+
+prevalidation:connectivity-baseline:
+  stage: prevalidation
+  needs: [build:validate-inventory]
+  script:
+    - echo "==> Running pyATS connectivity pre-check"
+    - $VENV_PYATS run job tests/postcheck/test_connectivity.py --testbed tests/testbed.yaml 2>&1 | tee connectivity_precheck.log
+    - grep -E "Result\s*:\s*(PASSED|FAILED|ERRORED)" connectivity_precheck.log && echo "Connectivity pre-check result captured"
+  artifacts:
+    paths:
+      - connectivity_precheck.log
+    expire_in: 7 days
+    when: always
+  allow_failure: true
+
 # ============================================================================
 # STAGE 3 -- DEPLOY
 # Manual gate — requires clicking play in GitLab UI before execution.
