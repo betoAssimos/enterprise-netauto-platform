@@ -285,14 +285,24 @@ python ai/agents/agent.py
 What devices are in the inventory?
 What is the BGP state on rtr-01?
 What are the OSPF neighbors of core-sw-01?
+What is the VRRP state on core-sw-01?
+Is the MLAG peer-link up on core-sw-01?
+Which interfaces are down on rtr-01?
+Does rtr-01 have a route to 2.2.2.2/32 and via which next-hop?
+Is core-sw-01 synchronized to the NTP server?
 ```
 
 ### Available tools
-| Tool | Description |
-|------|-------------|
-| get_device_inventory | List all devices with role and IP from hosts.yaml |
-| get_bgp_state | Live BGP neighbor state and prefix counts |
-| get_ospf_neighbors | Live OSPF neighbor state |
+| Tool | Platforms | Description |
+|------|-----------|-------------|
+| get_device_inventory | all | List all devices with role and IP from hosts.yaml |
+| get_bgp_state | IOS XE | Live BGP neighbor state and prefix counts |
+| get_ospf_neighbors | IOS XE + EOS | Live OSPF neighbor state |
+| get_vrrp_state | EOS | Live VRRP group state and virtual IPs |
+| get_mlag_state | EOS | Live MLAG domain state and interface states |
+| get_interface_status | IOS XE + EOS | Interface up/down state and description |
+| get_routing_table | IOS XE + EOS | Specific prefix lookup in the RIB |
+| get_ntp_status | IOS XE + EOS | NTP sync state and active server |
 
 > All tools are read-only. The AI layer has no config-changing capability.
 

@@ -31,17 +31,20 @@ All test files are inventory-driven — no hardcoded device names anywhere.
 test_bgp.py (precheck) and test_bgp_intent.py corrected as tech debt.
 
 AI layer complete:
-- FastMCP server (ai/mcp_server.py) — HTTP transport, 3 read-only tools:
-  get_device_inventory, get_bgp_state, get_ospf_neighbors
+- FastMCP server (ai/mcp_server.py) — HTTP transport, 8 read-only tools:
+  get_device_inventory, get_bgp_state, get_ospf_neighbors,
+  get_vrrp_state, get_mlag_state, get_interface_status,
+  get_routing_table, get_ntp_status
 - LangChain ReAct agent (ai/agents/agent.py) — Ollama llama3.1:8b
-- Validated: inventory queries, live BGP state, live OSPF neighbors
+- Validated: all 8 tools confirmed across IOS XE and EOS
+- EOS tools use device.execute() + regex (no Genie parsers for VRRP, MLAG, NTP)
+- IOS XE tools use Genie parsers; get_routing_table uses entry-based structure
 
 ---
 
 ## Next — in order
 
-1. Expand FastMCP server — additional read-only tools (see ideas below)
-2. NetBox as live SoT — replace hosts.yaml with dynamic inventory from API
+1. NetBox as live SoT — replace hosts.yaml with dynamic inventory from API
 
 ---
 
