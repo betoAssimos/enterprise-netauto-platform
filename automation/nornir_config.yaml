@@ -1,7 +1,6 @@
 inventory:
-  plugin: SimpleInventory
+  plugin: NetBoxInventory
   options:
-    host_file: automation/inventory/hosts.yaml
     group_file: automation/inventory/groups.yaml
     defaults_file: automation/inventory/defaults.yaml
 

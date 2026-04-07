@@ -40,21 +40,44 @@ AI layer complete:
 - EOS tools use device.execute() + regex (no Genie parsers for VRRP, MLAG, NTP)
 - IOS XE tools use Genie parsers; get_routing_table uses entry-based structure
 
+NetBox SoT migration complete:
+- NetBox 4.5.4 fully seeded — all 6 network devices, 36 custom field definitions,
+  all custom field values populated via automation/inventory/seed_netbox.py
+- Custom Nornir inventory plugin (automation/inventory/netbox_inventory.py)
+  queries NetBox at runtime and builds host objects with identical structure
+  to the previous hosts.yaml — zero changes to workflows, intent builders,
+  context builders, or test files
+- nornir_config.yaml updated to use NetBoxInventory plugin
+- hosts.yaml retained as reference but no longer drives automation
+- Validated: full OSPF deploy confirmed end-to-end with live NetBox inventory
+
 ---
 
 ## Next — in order
 
-1. NetBox as live SoT — replace hosts.yaml with dynamic inventory from API
+No confirmed next priority. See ideas backlog.
 
 ---
 
 ## Architecture decisions
 
-**hosts.yaml as static SoT instead of NetBox**
-NetBox is deployed and seeded but not used as the live inventory source.
-The decision was to keep the automation engine working and validate the
-full pipeline first. Migrating to dynamic NetBox inventory is planned but
-not a blocker for any current work.
+**NetBox as live SoT via custom Nornir inventory plugin**
+NetBox is the authoritative data source for all device inventory and
+automation data. The custom plugin (automation/inventory/netbox_inventory.py)
+queries NetBox at Nornir initialization time and returns host objects with
+the same structure previously produced by SimpleInventory + hosts.yaml.
+Groups and defaults are still loaded from groups.yaml and defaults.yaml
+so connection parameters remain in version control. ConnectionOptions
+objects are constructed explicitly — Nornir requires typed objects, not
+raw dicts, which SimpleInventory handled internally.
+
+**NetBox seeding via script, not UI**
+automation/inventory/seed_netbox.py reads hosts.yaml and pushes all
+device data, custom field definitions, and custom field values via the
+pynetbox API. Idempotent — uses get-or-create throughout. NetBox v4
+requires IP addresses assigned to device interfaces before they can be
+set as primary — the script creates a Management0 interface per device
+before assigning the IP.
 
 **Intent derived from policy, not raw config**
 BGP advertised prefix intent is derived from the prefix-list referenced
@@ -120,7 +143,7 @@ networking layer re-injects it. The solution is specific static routes
 toward the inet-host subnets (203.0.113.0/30, 203.0.113.4/30) on the
 core switches. Longest-prefix match wins over the management default
 regardless of AD. These routes are deployed via the OSPF workflow and
-tracked in hosts.yaml.
+stored in NetBox as static_routes custom fields.
 
 **gNMI limited to Arista**
 Cisco c8000v in this lab does not support gNMI reliably. SNMP covers
@@ -139,10 +162,10 @@ The original name was ambiguous when EOS already had process_eos.j2.
 Renamed to make the vendor split explicit and consistent across the
 template directory.
 
-**Credentials in hosts.yaml (Lab-Only)**
-Credentials are stored in automation/inventory/hosts.yaml for all devices
-(admin/admin). This is acceptable for a local lab environment with no
-sensitive data. For production, migrate to HashiCorp Vault or environment
+**Credentials in groups.yaml (Lab-Only)**
+Device credentials (admin/admin) are stored in automation/inventory/groups.yaml
+as Nornir group defaults. This is acceptable for a local lab environment with
+no sensitive data. For production, migrate to HashiCorp Vault or environment
 variables injected by CI/CD.
 
 **AI Layer — FastMCP construction vs. NetClaw adoption**
@@ -152,12 +175,20 @@ production-ready reference implementation with 82+ skills, but constructing the
 server from scratch ensures deeper understanding of the Model Context Protocol
 and tool exposure patterns. Architecture: FastMCP server exposing pyATS-based
 network tools, LangChain for agent orchestration, Ollama for local LLM inference,
-integration with existing hosts.yaml inventory.
+live device queries via pyATS testbed.
 
 **AI tools are read-only**
 All FastMCP tools query state only. No config-changing tools added until
 explicit gates and confirmation workflow are designed. This is a hard rule,
 not a guideline.
+
+**get_routing_table uses entry-based Genie structure for IOS XE**
+Genie's parser for `show ip route <host>` on IOS XE returns a top-level
+`entry` key, not `vrf.default.address_family.ipv4.routes`. The tool
+traverses `entry` → prefix → `paths` → path entries for next-hop data.
+EOS uses a two-line-per-route format parsed with a state machine: line 1
+captures protocol + prefix + optional AD/metric, line 2 captures
+`via next-hop, interface` or `directly connected, interface`.
 
 ---
 

@@ -1,102 +1,238 @@
-#!/usr/bin/env python3
-"""
-automation/inventory/netbox_inventory.py
-
-Generates automation/inventory/hosts.yaml dynamically from NetBox.
-
-Pulls:
-    - Device name, management IP, platform
-    - Site, role, model, manufacturer
-    - BGP custom fields: bgp_asn, bgp_router_id, bgp_neighbors
-
-Credentials are read from environment variables — never hardcoded.
-
-Usage:
-    python3 automation/inventory/netbox_inventory.py
-"""
+# automation/inventory/netbox_inventory.py
+#
+# Nornir inventory plugin — builds host inventory live from NetBox.
+#
+# Replaces SimpleInventory + hosts.yaml. NetBox is the authoritative SoT.
+# Groups and defaults are still loaded from yaml files (groups.yaml,
+# defaults.yaml) so connection parameters remain in version control.
+#
+# Registration:
+#   Import this module before InitNornir — the InventoryPluginRegister
+#   call at the bottom registers "NetBoxInventory" as a valid plugin name.
+#
+# nornir_config.yaml:
+#   inventory:
+#     plugin: NetBoxInventory
+#     options:
+#       group_file: automation/inventory/groups.yaml
+#       defaults_file: automation/inventory/defaults.yaml
+#
+# Data model produced per host:
+#   hostname    : management IP (from primary_ip4, prefix stripped)
+#   groups      : ["cisco"] or ["arista"] derived from manufacturer
+#   data:
+#     role       : device role slug (edge-router, core-switch, access-switch)
+#     site       : site slug
+#     model      : device type model string
+#     manufacturer: manufacturer name
+#     custom_fields: dict of all non-None custom field values from NetBox
 
 from __future__ import annotations
 
 import os
-import sys
 from pathlib import Path
+from typing import Any, Dict, Optional
 
 import pynetbox
 import yaml
 from dotenv import load_dotenv
+from nornir.core.inventory import (
+    ConnectionOptions,
+    Defaults,
+    Group,
+    Groups,
+    Host,
+    Hosts,
+    Inventory,
+)
+from nornir.core.plugins.inventory import InventoryPluginRegister
 
-from automation.utils.logger import get_logger
+BASE_DIR = Path(__file__).resolve().parents[2]
+load_dotenv(dotenv_path=BASE_DIR / ".env")
 
-load_dotenv(override=True)
-log = get_logger(__name__)
+# ---------------------------------------------------------------------------
+# Manufacturer → Nornir group name mapping
+# Must match keys in groups.yaml
+# ---------------------------------------------------------------------------
 
-NETBOX_URL = os.getenv("NETBOX_URL")
-NETBOX_TOKEN = os.getenv("NETBOX_TOKEN")
-DEVICE_USERNAME = os.getenv("DEVICE_USERNAME")
-DEVICE_PASSWORD = os.getenv("DEVICE_PASSWORD")
-
-if not NETBOX_URL or not NETBOX_TOKEN:
-    log.error("NETBOX_URL and NETBOX_TOKEN must be set in .env")
-    sys.exit(1)
-
-if not DEVICE_USERNAME or not DEVICE_PASSWORD:
-    log.error("DEVICE_USERNAME and DEVICE_PASSWORD must be set in .env")
-    sys.exit(1)
-
-OUTPUT_PATH = Path(__file__).parent / "hosts.yaml"
-
-nb = pynetbox.api(NETBOX_URL, token=NETBOX_TOKEN)
-
-
-def get_platform(manufacturer: str) -> str:
-    manufacturer = manufacturer.lower()
-    if "cisco" in manufacturer:
-        return "cisco"
-    if "arista" in manufacturer:
-        return "arista"
-    return "linux"
+MANUFACTURER_GROUP_MAP = {
+    "cisco":  "cisco",
+    "arista": "arista",
+}
 
 
-def build_inventory() -> dict:
-    hosts = {}
-    for device in nb.dcim.devices.filter(status="active"):
-        if not device.primary_ip4:
-            log.warning("Skipping device without primary IPv4", device=device.name)
-            continue
-
-        mgmt_ip = str(device.primary_ip4.address).split("/")[0]
-        manufacturer = device.device_type.manufacturer.name
-        platform = get_platform(manufacturer)
-
-        host: dict = {
-            "hostname": mgmt_ip,
-            "groups": [platform],
-            "data": {
-                "site": device.site.slug if device.site else None,
-                "role": device.role.slug if device.role else None,
-                "model": device.device_type.model,
-                "manufacturer": manufacturer,
-                "custom_fields": {},
-            },
-        }
-
-        cf = dict(device.custom_fields)
-        if cf.get("bgp_asn"):
-            host["data"]["custom_fields"]["bgp_asn"] = cf["bgp_asn"]
-        if cf.get("bgp_router_id"):
-            host["data"]["custom_fields"]["bgp_router_id"] = cf["bgp_router_id"]
-        if cf.get("bgp_neighbors"):
-            host["data"]["custom_fields"]["bgp_neighbors"] = cf["bgp_neighbors"]
-
-        hosts[device.name] = host
-        log.debug("Device added to inventory", device=device.name, ip=mgmt_ip)
-
-    return hosts
+def _manufacturer_to_group(manufacturer_name: str) -> str:
+    """Map NetBox manufacturer name to Nornir group name."""
+    return MANUFACTURER_GROUP_MAP.get(manufacturer_name.lower(), "cisco")
 
 
-if __name__ == "__main__":
-    log.info("Building inventory from NetBox", url=NETBOX_URL)
-    hosts = build_inventory()
-    with open(OUTPUT_PATH, "w") as f:
-        yaml.dump(hosts, f, default_flow_style=False)
-    log.info("Inventory written", path=str(OUTPUT_PATH), device_count=len(hosts))
+def _load_yaml(path: str) -> dict:
+    """Load a yaml file. Return empty dict if file not found."""
+    try:
+        with open(path) as f:
+            return yaml.safe_load(f) or {}
+    except FileNotFoundError:
+        return {}
+
+
+from nornir.core.inventory import (
+    ConnectionOptions,
+    Defaults,
+    Group,
+    Groups,
+    Host,
+    Hosts,
+    Inventory,
+)
+
+
+def _build_connection_options(raw: dict) -> dict:
+    """Convert raw connection_options dict to ConnectionOptions objects."""
+    return {
+        conn_name: ConnectionOptions(
+            hostname=opts.get("hostname"),
+            port=opts.get("port"),
+            username=opts.get("username"),
+            password=opts.get("password"),
+            platform=opts.get("platform"),
+            extras=opts.get("extras", {}),
+        )
+        for conn_name, opts in raw.items()
+    }
+
+
+def _build_groups(group_file: Optional[str]) -> Groups:
+    """
+    Build Nornir Groups from groups.yaml.
+    Converts raw connection_options dicts to ConnectionOptions objects —
+    Nornir requires typed objects, not raw dicts.
+    """
+    groups: Groups = {}
+    if not group_file:
+        return groups
+
+    raw = _load_yaml(group_file)
+    for group_name, group_data in raw.items():
+        group_data = group_data or {}
+        raw_conn_opts = group_data.get("connection_options", {})
+        groups[group_name] = Group(
+            name=group_name,
+            hostname=group_data.get("hostname"),
+            username=group_data.get("username"),
+            password=group_data.get("password"),
+            platform=group_data.get("platform"),
+            data=group_data.get("data"),
+            groups=group_data.get("groups", []),
+            connection_options=_build_connection_options(raw_conn_opts),
+        )
+    return groups
+
+
+def _build_defaults(defaults_file: Optional[str]) -> Defaults:
+    """Build Nornir Defaults from defaults.yaml."""
+    if not defaults_file:
+        return Defaults()
+
+    raw = _load_yaml(defaults_file)
+    if not raw:
+        return Defaults()
+
+    return Defaults(
+        hostname=raw.get("hostname"),
+        username=raw.get("username"),
+        password=raw.get("password"),
+        platform=raw.get("platform"),
+        data=raw.get("data"),
+        connection_options=raw.get("connection_options", {}),
+    )
+
+
+def _strip_none(d: dict) -> dict:
+    """Remove keys with None values from a dict (shallow)."""
+    return {k: v for k, v in d.items() if v is not None}
+
+
+# ---------------------------------------------------------------------------
+# Plugin class
+# ---------------------------------------------------------------------------
+
+class NetBoxInventory:
+    """
+    Nornir inventory plugin backed by NetBox.
+
+    Options (set in nornir_config.yaml under inventory.options):
+        group_file    : path to groups.yaml (optional, recommended)
+        defaults_file : path to defaults.yaml (optional)
+    """
+
+    def __init__(
+        self,
+        group_file: Optional[str] = None,
+        defaults_file: Optional[str] = None,
+        **kwargs: Any,
+    ) -> None:
+        self.group_file = group_file
+        self.defaults_file = defaults_file
+
+        netbox_url = os.environ.get("NETBOX_URL")
+        netbox_token = os.environ.get("NETBOX_TOKEN")
+
+        if not netbox_url or not netbox_token:
+            raise RuntimeError(
+                "NETBOX_URL and NETBOX_TOKEN must be set in environment or .env"
+            )
+
+        self.nb = pynetbox.api(netbox_url, token=netbox_token)
+        self.nb.http_session.verify = False
+
+    def load(self) -> Inventory:
+        groups = _build_groups(self.group_file)
+        defaults = _build_defaults(self.defaults_file)
+        hosts: Hosts = {}
+
+        for device in self.nb.dcim.devices.filter(status="active"):
+
+            # Skip devices without a management IP — cannot automate them
+            if not device.primary_ip4:
+                continue
+
+            mgmt_ip = str(device.primary_ip4.address).split("/")[0]
+            manufacturer_name = device.device_type.manufacturer.name
+            group_name = _manufacturer_to_group(manufacturer_name)
+
+            # Resolve group reference — create minimal group if not in groups.yaml
+            if group_name not in groups:
+                groups[group_name] = Group(name=group_name)
+            host_groups = [groups[group_name]]
+
+            # Custom fields — strip None values so the dict matches
+            # what hosts.yaml contains (fields not applicable to a device
+            # are simply absent, not None)
+            raw_cf = dict(device.custom_fields) if device.custom_fields else {}
+            custom_fields = _strip_none(raw_cf)
+
+            host_data: Dict[str, Any] = {
+                "role":          device.role.slug if device.role else None,
+                "site":          device.site.slug if device.site else None,
+                "model":         device.device_type.model,
+                "manufacturer":  manufacturer_name,
+                "custom_fields": custom_fields,
+            }
+
+            hosts[device.name] = Host(
+                name=device.name,
+                hostname=mgmt_ip,
+                groups=host_groups,
+                data=host_data,
+                defaults=defaults,
+            )
+
+        return Inventory(hosts=hosts, groups=groups, defaults=defaults)
+
+
+# ---------------------------------------------------------------------------
+# Plugin registration
+# Must execute at import time — before InitNornir is called
+# ---------------------------------------------------------------------------
+
+InventoryPluginRegister.register("NetBoxInventory", NetBoxInventory)

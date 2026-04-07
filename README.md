@@ -61,8 +61,9 @@ graph TD
 | Layer | Tool | Role |
 |-------|------|------|
 | Lab | Containerlab | Multi-vendor virtual topology |
-| Source of truth | hosts.yaml | Per-device automation data |
+| Source of truth | NetBox | Live device inventory and automation data |
 | Automation | Nornir + Scrapli | SSH config deployment |
+| Inventory plugin | netbox_inventory.py | Custom Nornir plugin — queries NetBox at runtime |
 | Rendering | Jinja2 | Vendor-specific templates |
 | Validation | pyATS + Genie | Pre/post state verification + intent validation |
 | Drift | DeepDiff | Intended vs actual config comparison |
@@ -181,7 +182,10 @@ cd containerlab && sudo containerlab deploy -t topology.yml
 cd .. && source venv/bin/activate
 set -a && source .env && set +a
 
-# 5. Deploy full stack
+# 5. Seed NetBox (first run only — idempotent, safe to re-run)
+python automation/inventory/seed_netbox.py
+
+# 6. Deploy full stack
 python automation/runner.py connect test
 python automation/runner.py deploy interfaces
 python automation/runner.py deploy ospf
@@ -295,7 +299,7 @@ Is core-sw-01 synchronized to the NTP server?
 ### Available tools
 | Tool | Platforms | Description |
 |------|-----------|-------------|
-| get_device_inventory | all | List all devices with role and IP from hosts.yaml |
+| get_device_inventory | all | List all devices with role and IP from NetBox |
 | get_bgp_state | IOS XE | Live BGP neighbor state and prefix counts |
 | get_ospf_neighbors | IOS XE + EOS | Live OSPF neighbor state |
 | get_vrrp_state | EOS | Live VRRP group state and virtual IPs |
@@ -314,4 +318,5 @@ Is core-sw-01 synchronized to the NTP server?
 - Python 3.12 (`./venv`)
 - Docker with Compose V2
 - Containerlab v0.73+
+- NetBox 4.5.4 (Docker)
 - Ollama with llama3.1:8b
