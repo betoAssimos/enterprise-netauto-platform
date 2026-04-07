@@ -1,0 +1,36 @@
+# Enterprise Network Automation Platform
+# Requirements — pinned from active venv (Python 3.12, WSL Ubuntu 24.04)
+#
+# Install: pip install -r requirements.txt
+# Note: Ollama is a system-level dependency, not a Python package.
+#       Install via: curl -fsSL https://ollama.com/install.sh | sh
+#       Model: ollama pull llama3.1:8b
+
+# ---------------------------------------------------------------------------
+# Core automation
+# ---------------------------------------------------------------------------
+nornir==3.5.0
+nornir-utils==0.2.0
+nornir_scrapli==2025.1.30
+scrapli==2026.2.20
+scrapli_cfg==2025.1.30
+pynetbox==7.6.1
+deepdiff==8.6.1
+python-dotenv
+
+# ---------------------------------------------------------------------------
+# Validation
+# ---------------------------------------------------------------------------
+pyats==26.2
+genie==26.2
+
+# ---------------------------------------------------------------------------
+# AI layer
+# ---------------------------------------------------------------------------
+fastmcp==3.2.0
+langchain==1.2.10
+langchain-core==1.2.17
+langchain-ollama==1.0.1
+langchain-mcp-adapters==0.2.2
+langgraph==1.0.10
+langgraph-prebuilt==1.0.8
