@@ -23,11 +23,24 @@ Intent validation suite complete. All tests pass at 100%:
 - BGP advertised prefixes: policy chain validation (pre-existing)
 - End-to-end connectivity (pre-existing)
 
+Pipeline prevalidation expanded: BGP baseline, OSPF baseline, connectivity
+baseline — all captured before deploy. Postvalidation: 8 parallel jobs covering
+full intent validation suite.
+
+All test files are inventory-driven — no hardcoded device names anywhere.
+test_bgp.py (precheck) and test_bgp_intent.py corrected as tech debt.
+
+AI layer complete:
+- FastMCP server (ai/mcp_server.py) — HTTP transport, 3 read-only tools:
+  get_device_inventory, get_bgp_state, get_ospf_neighbors
+- LangChain ReAct agent (ai/agents/agent.py) — Ollama llama3.1:8b
+- Validated: inventory queries, live BGP state, live OSPF neighbors
+
 ---
 
 ## Next — in order
 
-1. AI layer — FastMCP server + LangChain + Ollama, read-only network queries first
+1. Expand FastMCP server — additional read-only tools (see ideas below)
 2. NetBox as live SoT — replace hosts.yaml with dynamic inventory from API
 
 ---
@@ -63,8 +76,8 @@ files would fragment cohesive logic without architectural benefit.
 **Device names never hardcoded in test files**
 All test files derive the device list from inventory by role filter via
 Nornir. Hardcoding names couples tests to topology and violates the
-single source of truth principle. The original BGP test was identified
-as tech debt for this reason.
+single source of truth principle. test_bgp.py and test_bgp_intent.py
+corrected — both are now inventory-driven.
 
 **Genie parser availability must be verified before writing test logic**
 EOS has no Genie parsers for OSPF, MLAG, VRRP, or NTP in the current
@@ -108,7 +121,8 @@ tracked in hosts.yaml.
 
 **gNMI limited to Arista**
 Cisco c8000v in this lab does not support gNMI reliably. SNMP covers
-all 6 devices. gNMI provides streaming telemetry from arista switches only. This is a lab constraint, not a design choice.
+all 6 devices. gNMI provides streaming telemetry from arista switches only.
+This is a lab constraint, not a design choice.
 
 **gnmic containerization**
 gnmic was originally running as a systemd service on the WSL host. Moved to
@@ -135,9 +149,12 @@ production-ready reference implementation with 82+ skills, but constructing the
 server from scratch ensures deeper understanding of the Model Context Protocol
 and tool exposure patterns. Architecture: FastMCP server exposing pyATS-based
 network tools, LangChain for agent orchestration, Ollama for local LLM inference,
-integration with existing hosts.yaml inventory. Skills will mirror current
-validation capabilities (BGP state, OSPF neighbors, drift detection) before
-adding generative features.
+integration with existing hosts.yaml inventory.
+
+**AI tools are read-only**
+All FastMCP tools query state only. No config-changing tools added until
+explicit gates and confirmation workflow are designed. This is a hard rule,
+not a guideline.
 
 ---
 

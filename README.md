@@ -2,7 +2,8 @@
 
 A network automation platform built on a multi-vendor containerized lab.
 Automates the full configuration lifecycle — deployment, validation, drift
-detection, and rollback — across a 3-tier enterprise topology.
+detection, and rollback — across a 3-tier enterprise topology. Includes an
+AI-assisted network operations layer backed by a custom FastMCP server.
 
 ---
 
@@ -70,6 +71,7 @@ graph TD
 | Observability | SNMP + gNMI | Device metrics (gNMI: Arista only) |
 | CI/CD | GitLab | 5-stage automated pipeline with remediation |
 | Linux hosts | Ansible | NTP server, syslog receiver on svc-01 |
+| AI | FastMCP + LangChain + Ollama | Natural language network state queries |
 
 ---
 
@@ -148,9 +150,9 @@ build → prevalidation → deploy (manual gate) → postvalidation → remediat
 ```
 
 - **build** — environment, dependencies, device reachability, inventory
-- **prevalidation** — pyATS BGP baseline before touching devices
+- **prevalidation** — BGP, OSPF, and connectivity baselines captured before deploy
 - **deploy** — full stack in dependency order, requires manual approval
-- **postvalidation** — BGP state, intent validation, end-to-end connectivity
+- **postvalidation** — 8 parallel jobs: BGP state, full intent validation suite, connectivity
 - **remediation** — switching domain restore with connectivity recheck (manual gate)
 
 ---
@@ -221,6 +223,11 @@ pyats run job tests/precheck/test_bgp.py --testbed tests/testbed.yaml
 pyats run job tests/postcheck/test_bgp.py --testbed tests/testbed.yaml
 ```
 
+### OSPF baseline
+```bash
+pyats run job tests/precheck/test_ospf.py --testbed tests/testbed.yaml
+```
+
 ### Intent validation
 ```bash
 # BGP — advertised prefix policy compliance
@@ -255,9 +262,46 @@ python automation/runner.py drift bgp
 
 ---
 
+## AI Layer
+
+Natural language network state queries via a custom FastMCP server and
+LangChain ReAct agent backed by a local Ollama LLM.
+
+### Starting the AI layer
+```bash
+# Terminal 1 — MCP server
+source venv/bin/activate
+set -a && source .env && set +a
+python ai/mcp_server.py
+
+# Terminal 2 — Agent
+source venv/bin/activate
+set -a && source .env && set +a
+python ai/agents/agent.py
+```
+
+### Example queries
+```
+What devices are in the inventory?
+What is the BGP state on rtr-01?
+What are the OSPF neighbors of core-sw-01?
+```
+
+### Available tools
+| Tool | Description |
+|------|-------------|
+| get_device_inventory | List all devices with role and IP from hosts.yaml |
+| get_bgp_state | Live BGP neighbor state and prefix counts |
+| get_ospf_neighbors | Live OSPF neighbor state |
+
+> All tools are read-only. The AI layer has no config-changing capability.
+
+---
+
 ## Environment
 
 - WSL Ubuntu 24.04
 - Python 3.12 (`./venv`)
 - Docker with Compose V2
 - Containerlab v0.73+
+- Ollama with llama3.1:8b
