@@ -312,6 +312,16 @@ Is core-sw-01 synchronized to the NTP server?
 
 ---
 
+## Known Issues
+
+**OSPF adjacency on eBGP peering link**
+rtr-01 and rtr-02 form an OSPF adjacency on their eBGP p2p segment
+(GigabitEthernet2, 10.0.0.0/30). The segment should be passive in OSPF.
+Active workaround: `ospf_route_expected: false` prevents the intent validator
+from incorrectly failing on loopback routes learned via eBGP (AD 20) instead
+of OSPF (AD 110). Root cause fix scheduled — passive-interface GigabitEthernet2
+on both edge routers.
+
 ## Environment
 
 - WSL Ubuntu 24.04

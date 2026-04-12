@@ -55,7 +55,14 @@ NetBox SoT migration complete:
 
 ## Next — in order
 
-No confirmed next priority. See ideas backlog.
+1. Chaos injection framework — multi-domain fault injection and platform resilience testing
+2. Tech debt: interface descriptions on MLAG/LACP physical members
+3. Tech debt: refactor restconf_client.py to use persistent Session
+4. Observability additions: Oxidized, Grafana Alertmanager, Loki + Promtail
+5. Batfish — offline config analysis in CI prevalidation stage
+6. Protocol fixes:
+   a. OSPF passive-interface on GigabitEthernet2 (rtr-01 and rtr-02) — removes ospf_route_expected workaround
+   b. VRRP load distribution — core-sw-01 master for groups 10/99, core-sw-02 master for group 20 + intent test update
 
 ---
 
@@ -189,6 +196,13 @@ traverses `entry` → prefix → `paths` → path entries for next-hop data.
 EOS uses a two-line-per-route format parsed with a state machine: line 1
 captures protocol + prefix + optional AD/metric, line 2 captures
 `via next-hop, interface` or `directly connected, interface`.
+
+**VRRP master ownership imbalance (known gap)**
+core-sw-01 is master for all three VRRP groups (10, 20, 99). Target state
+distributes ownership: core-sw-01 masters groups 10 and 99, core-sw-02 masters
+group 20. Fix requires priority adjustment in templates/vrrp_eos.j2 and
+corresponding update to tests/postcheck/test_vrrp_intent.py. Deferred until
+after observability additions.
 
 ---
 
