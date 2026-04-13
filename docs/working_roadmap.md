@@ -55,7 +55,10 @@ NetBox SoT migration complete:
 
 ## Next — in order
 
-1. Chaos injection framework — multi-domain fault injection and platform resilience testing
+1. Chaos injection framework — Phase 1 foundation complete (Scenario 3 OSPF validated).
+   Remaining: mlag.py (1), access_uplink.py (2), bgp.py (4,5), vrrp.py (6),
+   ntp.py (7), telemetry.py (8), pipeline.py (10), syslog_diagnosis.py (11),
+   restconf.py (12). Then steady_state.py (Phase 2) and combined/ (Phase 3).
 2. Tech debt: interface descriptions on MLAG/LACP physical members
 3. Tech debt: refactor restconf_client.py to use persistent Session
 4. Observability additions: Oxidized, Grafana Alertmanager, Loki + Promtail
@@ -203,6 +206,20 @@ distributes ownership: core-sw-01 masters groups 10 and 99, core-sw-02 masters
 group 20. Fix requires priority adjustment in templates/vrrp_eos.j2 and
 corresponding update to tests/postcheck/test_vrrp_intent.py. Deferred until
 after observability additions.
+
+**Chaos framework registry as standalone module**
+SCENARIO_REGISTRY, PHASE_REGISTRY, and register_scenario() live exclusively in
+tests/chaos/registry.py. When chaos_runner.py runs as __main__, Python creates
+a separate module identity from tests.chaos.chaos_runner. Any injector importing
+register_scenario from chaos_runner.py registers to the wrong identity and never
+appears in --list. The standalone registry has a single identity regardless of
+how chaos_runner.py is invoked. Each new injector requires one explicit import
+line in chaos_runner.py to trigger registration at startup.
+
+**Chaos fault window sizing**
+Prometheus scrape interval is 15s. A fault must persist for at least 2× the scrape
+interval (30s) to guarantee a dip appears in Grafana dashboards. Development/CI
+runs use --wait 10. Portfolio demo runs use --wait 30.
 
 ---
 

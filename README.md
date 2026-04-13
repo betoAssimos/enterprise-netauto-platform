@@ -71,6 +71,7 @@ graph TD
 | Telemetry | Prometheus + Grafana | Metrics and dashboards |
 | Observability | SNMP + gNMI | Device metrics (gNMI: Arista only) |
 | CI/CD | GitLab | 5-stage automated pipeline with remediation |
+| Chaos engineering | tests/chaos/ | Fault injection, detection, auto-remediation |
 | Linux hosts | Ansible | NTP server, syslog receiver on svc-01 |
 | AI | FastMCP + LangChain + Ollama | Natural language network state queries |
 
@@ -321,6 +322,25 @@ Active workaround: `ospf_route_expected: false` prevents the intent validator
 from incorrectly failing on loopback routes learned via eBGP (AD 20) instead
 of OSPF (AD 110). Root cause fix scheduled — passive-interface GigabitEthernet2
 on both edge routers.
+
+## Chaos Engineering
+
+Structured fault injection framework for platform resilience testing.
+
+```bash
+# List available scenarios
+python tests/chaos/chaos_runner.py --list
+
+# Run Scenario 3 — OSPF process removal (development)
+python tests/chaos/chaos_runner.py --scenario 3 --wait 10
+
+# Run Scenario 3 — Grafana-visible fault window
+python tests/chaos/chaos_runner.py --scenario 3 --wait 30
+```
+
+Three phases: single fault injection (Phase 1), steady state baseline (Phase 2),
+combined failures (Phase 3). Phase 1 Scenario 3 (OSPF process removal on
+core-sw-01) is complete. Remaining Phase 1 injectors in progress.
 
 ## Environment
 
