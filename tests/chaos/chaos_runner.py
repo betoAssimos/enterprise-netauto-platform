@@ -99,6 +99,11 @@ Examples:
         default="tests/testbed.yaml",
         help="Path to pyATS testbed file (default: tests/testbed.yaml)"
     )
+    parser.add_argument(
+    "--interactive",
+    action="store_true",
+    help="Pause after injection for manual inspection before detection proceeds",
+    )
     
     return parser.parse_args()
 
@@ -146,6 +151,7 @@ def run_scenario(
     scenario_id: int,
     auto_remediate: bool = True,
     wait_seconds: int = 5,
+    interactive: bool = False,
     testbed: str = "tests/testbed.yaml"
 ) -> Optional[ScenarioResult]:
     """
@@ -171,7 +177,8 @@ def run_scenario(
         scenario = scenario_class()
         result = scenario.run(
             auto_remediate=effective_auto,
-            wait_seconds=wait_seconds
+            wait_seconds=wait_seconds,
+            interactive=interactive
         )
         return result
     except Exception as e:
@@ -183,6 +190,7 @@ def run_phase(
     phase: str,
     auto_remediate: bool = True,
     wait_seconds: int = 5,
+    interactive: bool = False,
     testbed: str = "tests/testbed.yaml"
 ) -> List[ScenarioResult]:
     """Run all scenarios in a phase."""
@@ -198,7 +206,7 @@ def run_phase(
     
     results = []
     for sid in sorted(scenario_ids):
-        result = run_scenario(sid, auto_remediate, wait_seconds, testbed)
+        result = run_scenario(sid, auto_remediate, wait_seconds, interactive, testbed)
         if result:
             results.append(result)
     
@@ -208,6 +216,7 @@ def run_phase(
 def run_all(
     auto_remediate: bool = True,
     wait_seconds: int = 5,
+    interactive: bool = False,
     testbed: str = "tests/testbed.yaml"
 ) -> List[ScenarioResult]:
     """Run all registered scenarios."""
@@ -222,7 +231,7 @@ def run_all(
     results = []
     # Run in order: Phase 1, then 2, then 3
     for phase in ["1", "2", "3"]:
-        phase_results = run_phase(phase, auto_remediate, wait_seconds, testbed)
+        phase_results = run_phase(phase, auto_remediate, wait_seconds, interactive, testbed)
         results.extend(phase_results)
     
     return results
@@ -252,6 +261,7 @@ def main() -> int:
             args.scenario,
             auto_remediate=not args.no_remediate,
             wait_seconds=args.wait,
+            interactive=args.interactive,
             testbed=args.testbed
         )
         if result:
@@ -265,6 +275,7 @@ def main() -> int:
             args.phase,
             auto_remediate=not args.no_remediate,
             wait_seconds=args.wait,
+            interactive=args.interactive,
             testbed=args.testbed
         )
     
@@ -273,6 +284,7 @@ def main() -> int:
         results = run_all(
             auto_remediate=not args.no_remediate,
             wait_seconds=args.wait,
+            interactive=args.interactive,
             testbed=args.testbed
         )
     

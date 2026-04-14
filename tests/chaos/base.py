@@ -313,7 +313,7 @@ class ChaosScenario(ABC):
         """
         pass
     
-    def run(self, auto_remediate: bool = True, wait_seconds: int = 5) -> ScenarioResult:
+    def run(self, auto_remediate: bool = True, wait_seconds: int = 5, interactive: bool = False) -> ScenarioResult:
         """
         Execute full chaos scenario lifecycle:
         inject → wait → detect → [remediate] → verify → [restore]
@@ -332,10 +332,22 @@ class ChaosScenario(ABC):
             if inject_result.status == "failed":
                 raise RuntimeError("Injection failed — aborting")
             
-            # 2. WAIT
-            print(f"[2/6] Waiting {wait_seconds}s for fault propagation...")
-            wait_result = self._wait(wait_seconds, "fault propagation")
-            self.result.add_phase(wait_result)
+            # 2. WAIT / GATE
+            if interactive:
+                print(f"[2/6] Fault injected. Manual inspection window open.")
+                print(f"      Check: Grafana, syslog (svc-01), AI agent, pyATS intent tests")
+                print(f"      Press ENTER when ready to proceed to detection...")
+                input()
+                self.result.add_phase(PhaseResult(
+                    name="wait",
+                    status="passed",
+                    duration_ms=0,
+                    message="Manual gate — user confirmed ready to proceed",
+                ))
+            else:
+                print(f"[2/6] Waiting {wait_seconds}s for fault propagation...")
+                wait_result = self._wait(wait_seconds, "fault propagation")
+                self.result.add_phase(wait_result)
             
             # 3. DETECT
             print(f"[3/6] Detecting fault (pyATS should FAIL)...")
