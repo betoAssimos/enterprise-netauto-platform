@@ -61,7 +61,7 @@ graph TD
 | Layer | Tool | Role |
 |-------|------|------|
 | Lab | Containerlab | Multi-vendor virtual topology |
-| Source of truth | NetBox | Live device inventory and automation data |
+| Source of truth | NetBox/Nautobot (PostgreSQL) | Live device inventory and automation data |
 | Automation | Nornir + Scrapli | SSH config deployment |
 | Inventory plugin | netbox_inventory.py | Custom Nornir plugin — queries NetBox at runtime |
 | Rendering | Jinja2 | Vendor-specific templates |
